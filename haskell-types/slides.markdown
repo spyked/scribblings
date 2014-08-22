@@ -10,3 +10,14 @@
 
 * How do we make a friend of Haskell types?
 
+# Sample code
+
+~~~~ {.haskell}
+data Bla = Bla
+  deriving (Show, Eq)
+
+myfunc :: Int -> Maybe Int
+myfunc = undefined
+
+"yadda" :: String
+~~~~
