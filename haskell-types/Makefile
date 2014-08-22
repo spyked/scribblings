@@ -8,7 +8,7 @@ MARKDOWN = $(addsuffix .markdown, $(BASENAME))
 
 PANDOC = pandoc
 PANDOC_HEADER = $(PANDOC) --self-contained -s
-PANDOC_SLIDE = $(PANDOC_HEADER) -t dzslides
+PANDOC_SLIDE = $(PANDOC_HEADER) -t dzslides --template=my.dzslides
 PANDOC_TEX = $(PANDOC_HEADER) -t beamer
 
 PDFLATEX = pdflatex
