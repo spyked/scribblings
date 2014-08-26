@@ -594,7 +594,8 @@ MaxThree
 * Functional dependencies  
 [http://haskell.org/haskellwiki/Functional_dependencies](http://www.haskell.org/haskellwiki/Functional_dependencies)
 * Contract checking  
-[http://research.microsoft.com/en-us/um/people/simonpj/papers/verify/index.htm](http://research.microsoft.com/en-us/um/people/simonpj/papers/verify/index.htm)
+[http://research.microsoft.com/en-us/um/people/simonpj/papers/verify/index.htm](http://research.microsoft.com/en-us/um/people/simonpj/papers/verify/index.htm)  
+[http://goto.ucsd.edu/~rjhala/liquid/haskell/blog/about/](http://goto.ucsd.edu/~rjhala/liquid/haskell/blog/about/)
 
 # Extra example: non-empty lists
 
