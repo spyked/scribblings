@@ -589,6 +589,13 @@ MaxThree
 
 * We can use dependently typed languages (e.g. Idris) as an alternative
 
+# Haskell extensions for static checking
+
+* Functional dependencies  
+[http://haskell.org/haskellwiki/Functional_dependencies](http://www.haskell.org/haskellwiki/Functional_dependencies)
+* Contract checking  
+[http://research.microsoft.com/en-us/um/people/simonpj/papers/verify/index.htm](http://research.microsoft.com/en-us/um/people/simonpj/papers/verify/index.htm)
+
 # Extra example: non-empty lists
 
 `head` and `tail` are unsafe
