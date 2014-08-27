@@ -4,7 +4,7 @@
 
 # A bit about what I do
 
-**Research** (UPB)
+**Research** (UPB/ACS)
 
 * Improving the security of software systems
 
@@ -22,7 +22,7 @@
 
 # A bit about what I do
 
-**Teaching** assistant (UPB) for the following courses:
+**Teaching** assistant (UPB/ACS) for the following courses:
 
 * Programming Paradigms
 
