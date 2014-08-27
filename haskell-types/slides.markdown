@@ -282,7 +282,7 @@ type MultiBucket a = [Bucket a]
 * `type` is similar to C's `typedef`
 	* Type synonyms
 * **Note**: synonyms are **not** subjected to type checking
-	* E.g. `MultiBucket a` and `[Bucket a]` are the same thing
+	* E.g. `MultiBucket a` and `[Bucket a]` are the same type
 
 # Example 4
 
@@ -337,7 +337,7 @@ getBucket obj mb = case filter isEqual mb of
 ~~~~
 
 * **Note**: `case` performs pattern matching on values
-* **Note**: `[]` is the empty list `x : list` is a non-empty list
+* **Note**: `[]` is the empty list; `x : list` is a non-empty list
 
 # Example 5
 
