@@ -4,21 +4,31 @@
 
 # Type systems
 
+*"Source code is for humans to read, and only incidentally for machines to run."*
+
 * Tools for abstraction
 
 * Tools for documentation
 
 * Safeguards against errors
 
-# Haskell typing discipline
+# "Advanced" type systems
+
+Curry-Howard isomorphism:
+
+* Proofs as programs
+
+* Propositions as types
+
+# Haskell typing philosophy
 
 * Strong
 
 * Static
 
-* Safe
-
 * Algebraic
+
+* "If it passes the type checker, then it's correct"
 
 # Primitive types
 
@@ -42,7 +52,7 @@ True :: Bool
 data Void
 data Unit = MkUnit
 data Bool = False | True
-data Weight = MkWeight Int -- newtype?
+data Kg = MkKg Int -- newtype?
 ~~~~
 
 <!--
