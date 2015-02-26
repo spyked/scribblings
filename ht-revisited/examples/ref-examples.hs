@@ -26,6 +26,12 @@ append :: List a -> List a -> List a
 append Empty l2       = l2
 append (Cons x l1) l2 = Cons x (append l1 l2)
 
+-- This is an incorrect definition of append which compiles and can incorrectly
+-- pass as "good" behaviour. Thus we need to consider append to be an axiom.
+--append Empty l2       = case l2 of
+--  Empty -> l2
+--  Cons x _ -> Cons x l2
+
 class Eq a where
   (==) :: a -> a -> Bool
 
