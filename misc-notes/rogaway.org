@@ -1,0 +1,175 @@
+#+TITLE: Phillip Rogaway, "The Moral Character of Cryptographic Work"
+#+SUBTITLE: Notes, support for security cs.pub.ro talk on Mar 3, 2016
+
+* Resources
+  Paper:
+  - [[http://web.cs.ucdavis.edu/~rogaway/papers/moral.html][Paper page]]
+  - [[https://www.math.auckland.ac.nz/~sgal018/AC2015/slides/Rogaway.pdf][Slides]]
+  - [[https://soundcloud.com/getur0/moral-crypto-asiacrypt][SoundCloud talk recording]]
+
+  Other resources:
+  - [[http://www.securityweek.com/privategrity-david-chaums-anonymous-communications-project][David Chaum surrendering to the enemy]]
+  - [[https://projects.propublica.org/nsa-grid/][NSA grid]]
+  - [[https://drownattack.com/][OpenSSL DROWN attack]]
+* Notes on slides
+** 1. Intro
+** 2. "Social responsibility"
+   - Russell-Einstein manifesto against nuclear weapons
+   - Nuremberg trials, scientists sentenced to death for socially
+     reprehensible actions
+   - Environmental movement, slowly killing ourselves by pollution
+** 3. The Ethic of Responsibility
+   - Three imperatives
+** 4. Doctrinal norm
+   - Codes of ethics adopted by scientific organizations
+   - Models of "good scientists": Einstein, Feynman, Sagan, etc.
+** 5. The Ethic of Responsibility in Decline
+   - Military work. (*Note LM*: how bad is it, really?)
+   - Normative vision is nowadays considered inappropriate
+   - Students, prospective scientists not considering social utility
+** 6. Artifacts and Ideas are *Routinely* Political
+   - Stingray device (cell tower spoofer)
+   - Drone control stations
+   - Phone monitoring software
+   - Crypto should also be considered political
+
+   *Note LM*: this also applies to non-crypto software and
+    hardware. E.g. what if bugs in an Intel CPU are actually an NSA
+    backdoor?
+** 7. Perception of Cryptographers
+   - "Spy", "hacker" versus Scientist
+   - The latter doesn't *seem* political
+** 8. Cryptographers Used to be More Political
+   - Diffie, Newegg vs. TQP <-- on the social relevance of privacy
+   - Chaum <-- on surveillance society
+
+   *Note LM*: Has Chaum defected? His latest cMix paper is very
+    controversial, suggests legitimizing backdoors.
+** 9. Disciplinary Divide
+   - Chaum: Untraceable electronic mail, considered "unrigorous"?
+     Actually the paper's discourse is more *socio-political*.
+   - Golwasser and Micali, Probabilistic encryption, discourse is more
+     scientific, "harmless"?
+** 10. Cypherpunks
+   "The Universe believes in encryption" (Assange)
+** 11. Cryptography doesn't always favour the weak
+   - Identity-Based Encryption: requires a third-party for the scheme to
+     work. What if the third-party becomes untrusted?
+
+     *Note LM*: this seems to have the same problem as PKI.
+
+     *Note LM*: Boneh and Franklin, IBE-based Pairing Based Cryptography
+     solves this issue?
+   - Fully Homomorphic Encryption, unicorns (at least from Rogaway's
+     point of view)
+   - *Note LM*: there are other technologies that put the user in a
+     weaker position, e.g. ARM TrustZone, Intel SGX
+** 12. The Summer of Snowden
+   The question is, is mass surveillance even a problem?
+** 13. Complexity + Secrecy: A Toxic Mix
+   We don't know if, why, how we're tracked, a complete lack of
+   transparency.
+** 14. Law-Enforcement Framing
+   Privacy and Security are in conflict --> there's a risk of "going
+   dark" and of "terrorists" winning. Is there any credibility to this?
+
+   *Note LM*: Reports of terrorists using Telegram to communicate.
+** 15. Surveillance-Studies Framing
+   Privacy and Security usually not in conflict, surveillance is an
+   instrument of power used for cyber warfare.
+
+   Privacy is also a social good, privacy and security support one
+   another.
+** 16. Political surveillance
+   - Matin Luther King's fake suicide letter
+   - Miami protests, people are monitored, in order to discourage
+     protests, etc.
+** 17. Instinctual Disdain
+   Surveillance is a *prey* versus *predator* game.
+** 18. Narayanan's taxonomy
+   - Crypto-for-security: SSL et al.
+   - Crypto-for-privacy: PGP, Tor
+   - Crypto-for-crypto: "Crypto degeaba"
+
+   *Note LM*: Author thinks SSL has done great over the years, which is
+   dubious in light of vulnerabilities discovered in the last
+   years. These seem to suggest that there were backdoors in there all
+   along, planted by who-knows-who.
+** 19. The xMail problem
+   Problem formulation: A wants to send a message to B using an
+   untrusted server.
+
+   Scheme:
+   - A encrypts data with B's public key
+   - Server adds it to database
+   - B receives its data from the server and decrypts it with their
+     secret key
+
+   Problem: in the worst case, B has to download the entire database
+   from the server and traverse it to see if it has any messages.
+** 20. Bigkey Cryptography
+   Problem formulation: protect against Advanced Persistent
+   Threats. Hide small data inside a big amount of data and encrypt it
+   using a huge key (e.g. 1TB).
+** 21. Bigkey Cryptography
+   Problem: if a big enough proportion (e.g. 50%) of the big key is
+   leaked, what is the adversary's probability of predicting a part of
+   the key?
+** 22. More examples and moral imperatives
+   - Riposte, scrypt, various attacks, etc.
+   - Imperatives:
+     + Attend social value, do anti-surveillance research
+     + Be introspective about why you're working on a problem
+** 23. Practice-oriented provable security for crypto-for-privacy
+   Current work has problems mentioned in the slide.
+
+   Condemnatory attitude towards "non-standard" models.
+** 24. Against Dogma
+   "All models are wrong, but some are useful."
+
+   Be open to diverse models. Regard all models as suspect and
+   dialectial.
+** 25. Military Funding - 1
+   *Note LM*: what does the graph say about DoD funding? DoD gets more
+   involved in crypto, but what is their motivation?
+** 26. Military Funding - 2
+   Funding *changes* our values. *Reflects* as values.
+
+   *Note LM*: This also applies to corporate funding!
+** 27. Military Funding - 3
+   NSA doesn't consider crypto research a threat.
+
+   - Think twice about accepting military funding
+   - Regard ordinary people as those whose needs you aim to satisfy
+** 28. Cute or Scary?
+   Cartoon representations are unrealistic. Think about *human concerns*.
+
+   - Stop cutesy pictures
+   - Frustrate the NSA
+** 29. More Suggestions
+   - Academic freedom
+   - Systems-level view
+
+     *Note LM*: again, social responsibilities rests upon scientists,
+     developers, etc. Linux, OpenSSL, Intel et al. have a moral duty in
+     terms of security/privacy!
+   - Learn privacy tools, improve them, etc.
+   - Design and build useful crypto resources for the community
+** 30. Conclusions
+   Fundamental question is, is all this alarmist?
+
+   - OpenSSL bugs
+   - NSA surveillance programs
+   - Juniper backdoors
+   - Dual_EC_DRBG
+
+   *Note LM*: looking at bugs found in the last decade and possible
+   links with the NSA would make an interesting study.
+
+   Interest in politics, quote.
+
+   *Note LM*: from the talk's question session; it's impossible to
+   determine the future, how does one go about deciding what is good and
+   what is bad? Should we censor ourselves just because some work is
+   bad? (i.e. in what sense does the precautionary principle work here?)
+
