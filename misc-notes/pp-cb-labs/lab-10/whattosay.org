@@ -1,0 +1,116 @@
+#+TITLE: Paradigme de programare, laboratorul 10
+#+SUBTITLE: Întârzierea evaluării în Scheme
+
+* Evaluarea (implicită) în Scheme
+  Spuneam acum două laboratoare că există în general două tipuri de
+  evaluare:
+
+  - evaluarea aplicativă :: în care expresiile sunt evaluate cât mai
+       repede cu putință (e.g. întâi parametrii funcțiilor, apoi corpul
+       acesteia).
+  - evaluarea normală :: în care expresiile sunt evaluate „la nevoie”
+       (e.g. întâi corpul funcției, apoi parametrii -- dacă e nevoie);
+       un caz particular este *evaluarea leneșă*, în care expresiile
+       evaluate sunt și reținute în memorie.
+
+  Implicit în Scheme evaluarea este aplicativă. Ne aducem în minte că
+  puteam construi liste cum ar fi:
+
+  #+NAME: (Reminder de) listă infinită în Haskell
+  #+BEGIN_SRC haskell
+  > let repeat n = n : repeat n
+  > head (repeat 2)
+  2
+  #+END_SRC
+
+  În Scheme acest lucru ar duce la evaluarea la infinit a expresiei:
+
+  #+NAME: Exemplul de mai sus în Scheme
+  #+BEGIN_SRC scheme
+  > (define (repeat n) (cons n (repeat n)))
+  > (car (repeat 2)) ; va duce la stack overflow
+  #+END_SRC
+
+  deoarece =repeat n= este evaluat la fiecare evaluare a expresiei
+  =(cons n (repeat n))=.
+* Metode de întârziere a evaluării; închideri; delay/force
+  Intuitiv, cum putem întârzia evaluarea unei expresii în Scheme? Dacă o
+  punem într-un lambda (remember curry, uncurry!), expresia va fi
+  salvată ca atare și va putea fi evaluată mai târziu când o aplicăm pe
+  parametri. Putem folosi un lambda nular pentru a controla acest lucru.
+
+  De exemplu putem defini =repeat= astfel:
+
+  #+NAME: repeat cu închideri
+  #+BEGIN_SRC scheme
+  (define (repeat n)
+    (cons n (lambda () (repeat n))))
+
+  > (car (repeat 2))
+  2
+  #+END_SRC
+
+  Observăm însă că restul listei nu va mai fi o listă, ci o procedură:
+
+  #+BEGIN_SRC scheme
+  > (cdr (repeat 2))
+  ; evaluăm punând expresia într-un set de paranteze
+  > ((cdr (repeat 2)))
+  #+END_SRC
+
+  Scheme oferă un mecanism general pentru întârzierea evaluării,
+  mecanism numit delay/force. Putem redefini =repeat= folosind =delay=
+  și =force= după cum urmează:
+
+  #+NAME: repeat cu delay/force
+  #+BEGIN_SRC scheme
+  (define (repeat n)
+    (cons n (delay (repeat n))))
+
+  > (car (repeat 2))
+  2
+  > (cdr (repeat 2))
+  #<promise>
+  > (force (cdr (repeat 2)))
+  (2 . #<promise>)
+  #+END_SRC
+
+  - Observație :: delay/force funcționează exact la fel ca închiderile,
+       dar în plus impune *evaluarea leneșă* a expresiilor. Astfel,
+       obiectele de tip =#<promise>= rețin, pe lângă expresia
+       propriu-zisă, și dacă aceasta a fost sau nu evaluată. În momentul
+       aplicării lui =force=, pe lângă evaluarea expresiei, e reținut în
+       obiect și rezultatul evaluării, iar la evaluări ulterioare
+       expresia nu va fi reevaluată, ci va fi returnată direct valoarea
+       anterioară. *Atenție*, acest lucru presupune transparența
+       referențială, i.e. neexistența efectelor laterale.
+* Aplicații cu evaluarea leneșă; liste infinite (fluxuri)
+  Plecând de la exemplul anterior, putem redefini tipul de date *listă
+  infinită* (sau *flux*) ca având următorii constructori:
+
+  - lista vidă :: în majoritatea cazurilor nu vom avea nevoie de ea,
+       deoarece lucrăm cu liste "infinite"; de altfel, de multe ori
+       tipurile de date „Stream” nu definesc acest constructor
+  - o pereche între un element și o promisiune :: spre deosebire de
+       liste, unde construiam perechi element-listă
+
+  Pentru a putea lua elemente dintr-un flux trebuie să definim funcția
+  =take= (la fel ca în Haskell), care ia =n= elemente și le convertește
+  într-o listă clasică:
+
+  #+NAME: Preluarea primelor n elemente dintr-un flux
+  #+BEGIN_SRC scheme
+  (define (take n stream)
+    (if (zero? n) ; sau (null? stream) !
+      '()
+      (cons (car stream)
+            (take (- n 1) (force (cdr stream))))))
+  #+END_SRC
+* Exerciții
+  1. șirul numerelor naturale, naturals
+  2. takeWhile, drop
+  3. map pe un flux
+  4. zipWith între două fluxuri
+  5. șirul numerelor naturale pare, evens
+  6. șirul puterilor lui 2
+  7. șirul numerelor Fibonacci

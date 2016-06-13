@@ -1,0 +1,9 @@
+#+TITLE: Paradigme de programare, laboratorul 5-6
+#+SUBTITLE: Tipuri de date abstracte
+
+* Tipuri de date abstracte
+  TODO
+* Definirea tipurilor de date în Haskell
+  TODO
+* Lucrul cu tipuri de date în Haskell
+  TODO

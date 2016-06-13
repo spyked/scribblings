@@ -1,0 +1,74 @@
+#+TITLE: Paradigme de programare, laboratorul 4, aplicații cu funcții de ordin superior
+
+* Recapitulare funcții de ordin superior
+  Funcțiile de ordin superior sunt funcții care primesc ca parametri
+  alte funcții. Utilitatea lor constă în mare parte în faptul că permit
+  modularizarea codului în contextul paradigmei funcționale.
+
+  Funcționale uzuale (pe care le-am implementat în laboratorul trecut):
+
+  - *map*: aplică o funcție (unară) dată pe fiecare element al unei
+    liste. De exemplu:
+
+    #+NAME: Exemplu map
+    #+BEGIN_SRC haskell
+    > map (* 2) [1,2,3,4]
+    [2,4,6,8]
+    #+END_SRC
+  - *filter*: păstrează în lista dată ca parametru doar elementele care
+    satisfac un predicat dat. De exemplu:
+
+    #+NAME: Exemplu filter
+    #+BEGIN_SRC haskell
+    > filter odd [1,2,3,4,5]
+    [1,3,5]
+    #+END_SRC
+  - *zipWith*: ia elementele din două liste două câte două și aplică o
+    operație binară pe ele. De exemplu:
+
+    #+NAME: Exemplu zipWith
+    #+BEGIN_SRC haskell
+    > zipWith (:) [1,2,3] [[1,2,3], [4,5,6], [7,8,9]]
+    [[1,1,2,3],[2,4,5,6],[3,7,8,9]]
+    #+END_SRC
+  - *foldl*, *foldr*: parcurg o listă dată de la stânga la dreapta,
+    respectiv de la dreapta la stânga, și "acumulează" elementele
+    într-un acumulator dat prin aplicarea unei operații binare. De
+    exemplu:
+
+    #+NAME: Exemple foldl, foldr
+    #+BEGIN_SRC haskell
+    > foldl (flip (:)) [] [1,2,3,4]
+    [4,3,2,1]
+    > foldr (:) [] [1,2,3,4]
+    [1,2,3,4]
+    #+END_SRC
+
+    Explicație extra fold-uri: în exemplele de mai sus, observăm că
+    „acumularea” elementelor are loc stânga-dreapta în cazul lui
+    =foldl=, și dreapta-stânga în cazul lui =foldr= (echivalent cu
+    recursivitatea pe coadă, respectiv pe stivă). De exemplu =foldl= se
+    evaluează la:
+
+    #+BEGIN_SRC haskell
+    (((([] `flip (:)` 1) `flip (:)` 2) `flip (:)` 3) `flip (:)` 4)
+    -- adică, mai concret, starea acumulatorului va fi, la fiecare pas:
+    > [] `flip (:)` 1 -> 1 : []
+    > [1] `flip (:)` 2 -> 2 : [1]
+    > [2,1] `flip (:)` 3 -> 3 : [2,1]
+    > [3,2,1] `flip (:)` 4 -> 4 : [3,2,1]
+    > [4,3,2,1]
+    #+END_SRC
+
+    iar =foldr= se evaluează la:
+
+    #+BEGIN_SRC haskell
+    (1 : (2 : (3 : (4 : []))))
+    -- adică, mai concret, starea acumulatorului va fi, la fiecare pas,
+    -- *după* ce se ajunge pe cazul de bază (deci pe întoarcere)
+    > 4 : []
+    > 3 : [4]
+    > 2 : [3,4]
+    > 1 : [2,3,4]
+    > [1,2,3,4]
+    #+END_SRC

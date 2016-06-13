@@ -1,0 +1,184 @@
+#+TITLE: Paradigme de Programare, Laboratorul 2, recursivitate
+
+* Ce studiem în laboratorul 2
+  - Primii pași în Haskell, familiarizarea cu limbajul și mediul de lucru
+  - Rezolvarea de probleme folosind funcții recursive
+  - Tail-recursion (aka „recursivitate pe coadă”)
+* Mediul de lucru Haskell
+  Cum lucrăm în Haskell:
+  - Fișierele sursă Haskell au extensia .hs, le putem deschide în orice
+    editor text (e.g. pe calculatoarele din laborator aveți Sublime
+    Text, editorul text din Gnome, dar pe Windows puteți folosi și
+    Notepad++ de exemplu).
+  - Haskell are o consolă proprie, GHCi. Fișierele Haskell pot fi
+    deschise în GHCi tipărind în linia de comandă (e.g. lab-02.hs):
+
+    #+BEGIN_SRC bash
+    $ ghci lab-02.hs
+    #+END_SRC
+
+    Rezultatul va fi o consolă în care vor fi încărcate toate
+    definițiile din fișierul sursă.
+  - Alte comenzi:
+    + Reîncărcarea fișierului: =:reload=
+    + Încărcarea unui alt fișier: =:load nume_fisier.hs=
+    + Consultarea tipului unei expresii: =:t expresie=
+    + șamd.
+
+  Consola GHCi poate primi ca intrare (cam) orice fel de expresii
+  Haskell, e.g.
+
+  #+NAME: exemple de expresii Haskell
+  #+BEGIN_SRC haskell
+  > 2 + 3
+  > [1, 2, 3, 4]
+  > (True, "Ana are mere")
+  #+END_SRC
+
+  Pentru mai multe detalii despre expresii Haskell, citiți textul
+  laboratorului.
+
+  Fișierele sursă Haskell conțin în general expresii de forma =nume =
+  valoare=, pe care le vom numi *ecuații* sau *definiții*.
+
+  #+NAME: exemple de definiții Haskell
+  #+BEGIN_SRC haskell
+  x = 2
+  my_string = "Ana are mere"
+  f x = x + 1
+  #+END_SRC
+* Limbajul Haskell
+  - Haskell este *pur funcțional*: se bazează pe valori imutabile
+    (i.e. care nu pot fi modificate în timpul rulării), iar modelul de
+    execuție este bazat pe recursivitate. Asta înseamnă că nu avem deloc
+    efecte laterale sau modificarea stării variabilelor!
+  - Tipuri de date: foarte asemănătoare cu ce avem în C (vedeți lab
+    pentru mai multe detalii).
+
+    Caz particular: liste
+
+    #+NAME: liste în Haskell
+    #+BEGIN_SRC haskell
+    > [1,2,3,4]
+    > 1 : (2 : (3 : (4 : []))) -- aceeasi lista
+    > 1 : 2 : 3 : 4 : [] -- aceeasi lista
+    #+END_SRC
+
+  - Funcții: se aseamănă într-o anumită măsură cu C. De exemplu:
+    #+NAME: definirea unei funcții
+    #+BEGIN_SRC haskell
+    my_func x = (x + 1) * 3 / 2
+    another_func x y = [x, y]
+    #+END_SRC
+
+    #+NAME: apelul unei funcții
+    #+BEGIN_SRC haskell
+    > my_func (41 + 1)
+    > my_func 3
+    > another_func True False
+    > another_func "Ana" "Mere"
+    #+END_SRC
+
+    A se observa că operatorul de aplicare a unei funcții este
+    caracterul spațiu, spre deosebire de C, unde folosim paranteze.
+* Recursivitate
+  Problemă de jucărie: calculul sumei elementelor dintr-o listă.
+
+  În limbajele funcționale nu avem „built-in” structuri de control
+  (e.g. bucle for, while), acestea de obicei fiind implementate sub
+  forma unor funcții. De exemplu în C suma elementelor dintr-o listă e
+  calculată (imperativ) cam așa:
+
+  #+NAME: calculul sumei elementelor unei liste în C
+  #+BEGIN_SRC c
+  List *p;
+  unsigned sum = 0;
+  for (p = lista; !empty(p); p = tail(p))
+      sum += head(p);
+  #+END_SRC
+
+  - Reprezentarea funcțională/recursivă a problemei: plecăm de la TDA-ul
+    listă. Putem defini axiomatic că:
+    + Suma elementelor din lista vidă e 0 <-- *cazul de bază*
+    + Pentru a obține suma elementelor dintr-o listă nevidă, adunăm
+      capul listei la suma elementelor din restul listei <-- *pasul de
+      recursivitate*
+  - Țineți minte faptul că ne folosim de raționamentul
+    inductiv. Șablonul poate fi folosit la descompunerea și rezolvarea
+    oricărei probleme.
+
+  Cea mai intuitivă definiție în Haskell ar fi:
+
+  #+NAME: calculul sumei elementelor unei liste în Haskell
+  #+BEGIN_SRC haskell
+  mySum l = if null l
+            then 0
+            else head l + mySum (tail l)
+            -- (head l) + (mySum (tail l))
+  #+END_SRC
+
+  Ne amintim însă că TDA-ul listă are constructorii =[]= (lista vidă) și
+  =:= (cons), aceștia fiind și constructorii listei din Haskell. În
+  Haskell putem să facem *pattern matching* pe argumente: să
+  "deconstruim" lista în felul următor:
+
+  #+NAME: calculul sumei elementelor unei liste în Haskell (pattern matching)
+  #+BEGIN_SRC haskell
+  mySum' [] = 0
+  mySum' (x : l) = x + mySum' l
+  #+END_SRC
+
+  #+NAME: apel de functie
+  #+BEGIN_SRC haskell
+  > mySum []
+  > mySum' [1,2,3,4]
+  #+END_SRC
+* Recursivitate fără restricții, recursivitate pe coadă
+  Problema cu funcțiile definite anterior e că evaluarea lor nu se face
+  în spațiu constant:
+
+  #+NAME: evaluarea sumei elementelor unei liste
+  #+BEGIN_SRC haskell
+  > mySum [1,2,3,4] -- se evalueaza la
+  > 1 + mySum [2,3,4] -- se evalueaza la
+  > 1 + (2 + mySum [3,4]) -- ...
+  > 1 + (2 + (3 + mySum [4]))
+  > 1 + (2 + (3 + (4 + mySum [])))
+  > 1 + (2 + (3 + (4 + 0)))
+  > ...
+  > 10
+  #+END_SRC
+
+  Implementarea este problematică pentru intrări mari (food for thought:
+  ce se întâmplă dacă dăm ca argument o listă de un milion de
+  elemente?). Am putea la fel de bine să parcurgem lista și să calculăm
+  suma incremental, fără a ocupa spațiu adițional pe stiva programului.
+
+  - Notă: stiva programului ține contextul programului înaintea apelului
+    unei funcții.
+
+  Pentru asta, o să reținem rezultatele parțiale într-un parametru
+  denumit *acumulator* (=acc=):
+
+  #+NAME: calculul sumei elementelor unei liste (recursivitate pe coadă)
+  #+BEGIN_SRC haskell
+  mySumTail l = let mySumAux acc [] = acc
+                    mySumAux acc (x : l) = mySumAux (x + acc) l
+                in mySumAux 0 l
+  #+END_SRC
+
+  - Observăm că apelul recursiv din =mySumAux= este *ultimul* apel de
+    funcție efectuat, de unde și terminologia de "tail(-end) call". Asta
+    ne garantează că execuția va fi făcută în spațiu constant
+    (compilatorul Haskell știe să facă optimizarea asta).
+
+  #+NAME: evaluarea apelului mySumTail
+  #+BEGIN_SRC haskell
+  > mySumTail [1,2,3,4]
+  > mySumAux 0 [1,2,3,4]
+  > mySumAux (1 + 0) [2,3,4]
+  > mySumAux (2 + 1) [3,4]
+  > mySumAux (3 + 3) [4]
+  > mySumAux (4 + 6) []
+  > 10
+  #+END_SRC

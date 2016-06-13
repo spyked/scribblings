@@ -1,0 +1,162 @@
+#+TITLE: Paradigme de programare, laboratorul 9
+#+SUBTITLE: Introducere în Scheme
+
+* Limbajul Scheme, generalități
+  Limbajul Scheme e un limbaj funcțional, la fel ca Haskell. Diferențele
+  între Haskell și Scheme sunt în principal
+
+  - De sintaxă: sintaxa Scheme e mai simplă decât în Haskell, dar mai
+    puțin succintă.
+  - De puritate: Haskell e pur funcțional, Scheme permite existența
+    efectelor laterale, dar nu recomandă utilizarea lor.
+  - De evaluare: în Scheme evaluarea e implicit aplicativă, spre
+    deosebire de Haskell, unde evaluarea e implicit leneșă.
+  - De tipare: tiparea în Scheme e mai laxă, e.g. putem avea funcții
+    care întorc valori de tipuri diferite în funcție de situație; de
+    asemenea, verificarea de tip se face la run-time.
+
+  Aspectele de mai sus reprezintă un trade-off între flexibilitate
+  (Scheme) și corectitudine (Haskell).
+
+  *Observație*: Scheme e mai asemănător din multe puncte de vedere cu
+   limbaje așa-zis „dinamice” (de exemplu Python) decât Haskell.
+* Structura unui program Scheme
+  În Scheme atât programele cât și datele sunt reprezentate ca
+  liste. Câteva exemple:
+
+  #+NAME: Exemple de liste în Scheme
+  #+BEGIN_SRC scheme
+  > '(1 2 3 4)
+  > '(+ 1 2)
+  > '(x y z)
+  #+END_SRC
+
+  Folosind caracterul apostrof („'”) putem împiedica *evaluarea* (sau
+  *interpretarea*) unei liste. Dacă scriem de exemplu:
+
+  #+BEGIN_SRC scheme
+  > (+ 1 2)
+  #+END_SRC
+
+  Scheme va interpreta paranteza ca pe o expresie și va încerca să o
+  evalueze. Expresiile Scheme sunt în formă prefixată, e.g.
+
+  #+BEGIN_SRC scheme
+  (f x1 x2 ...)
+  #+END_SRC
+
+  unde =f= e o funcție și =x1=, =x2=, șamd reprezintă o listă de
+  argumente transmise funcției.
+
+  *Observație*: Punerea unei expresii între paranteze (fără apostrof)
+   denotă evaluarea ei explicită.
+* Definirea variabilelor
+  La nivelul cel mai de sus al programului (*top level*), variabilele se
+  definesc folosind funcția =define=:
+
+  #+NAME: Exemplu define
+  #+BEGIN_SRC scheme
+  > (define x 2)
+  > x
+  #+END_SRC
+
+  Există de asemenea funcția =set!=, care modifică valoarea unei
+  variabile. Remarcăm că =set!= are *efecte laterale*; în Scheme
+  funcțiile ale căror nume se termină cu semnul exclamării sunt în
+  general funcții cu efecte laterale:
+
+  #+NAME: Exemplu set!
+  #+BEGIN_SRC scheme
+  > (set! x 3)
+  x
+  #+END_SRC
+
+  Spre deosebire de =define=, =set!= poate fi folosit și în contextul
+  unei expresii:
+
+  #+BEGIN_SRC scheme
+  > (define f (define x 3)) ; o să întoarcă o eroare
+  > (define f (set! x 3)) ; ok
+  #+END_SRC
+* Funcții, liste, condiționale; funcții recursive
+  Cum definim funcții simple în Scheme? Dacă în Haskell aveam =\ x ->
+  corp_f=, în Scheme avem construcția =lambda=, e.g.:
+
+  #+NAME: Exemplu lambda
+  #+BEGIN_SRC scheme
+  > (lambda (x) (+ x 1))
+  > (define succ
+      (lambda (x)
+        (+ x 1)))
+  #+END_SRC
+
+  Avem de asemenea la dispoziție operații pe liste. Exemple:
+
+  #+NAME: Exemple lucru cu liste
+  #+BEGIN_SRC scheme
+  > (cons 1 2) ; perechi
+  > (car (cons 1 2)) ; fst
+  > (cdr (cons 1 2)) ; snd
+  > (cons 1 (cons 2 (cons 3 '()))) ; liste ca perechi element-listă
+  > (null? '()) ; verificare lista vidă
+  > (null? '(1 2 3))
+  #+END_SRC
+
+  Avem de asemenea la dispoziție ca structură de control condiționala
+  =if=, care funcționează similar cu Haskell:
+
+  #+NAME: Exemplu if
+  #+BEGIN_SRC scheme
+  > (define x 2)
+  > (if (= x 2) 'da 'nu)
+  > (define x 3)
+  > (if (= x 2) 'da 'nu)
+  #+END_SRC
+
+  *Observație*: în expresia de mai sus, ='da= și ='nu= reprezintă pur și
+   simplu simboluri neevaluate. Acestea ne permit foarte ușor lucrul la
+   nivel simbolic.
+
+  Plecând de la elementele de mai sus, putem construi funcții
+  recursive. De exemplu, suma elementelor dintr-o listă:
+
+  #+NAME: Exemplu funcție recursivă în Scheme, len
+  #+BEGIN_SRC scheme
+  > (define (sum L) ; identic cu (define sum (lambda (L) ...))
+      (if (empty? L)
+          0
+          (+ (car L) (sum (cdr L)))))
+  > (sum '(1 2 3 4))
+  #+END_SRC
+* Funcții de ordin superior
+  Și în Scheme avem funcții de ordin superior, e.g. =map=, =foldl=,
+  =foldr=, =filter=. =map= are o funcționalitate mai generală,
+  e.g. substituie inclusiv =zipWith= din Haskell. Exemple:
+
+  #+NAME: Exemple funcții de ordin superior
+  #+BEGIN_SRC scheme
+  > (map (lambda (x) (+ x 1)) '(1 2 3 4 5))
+  > (foldr + 0 '(1 2 3 4))
+  > (foldl cons '() '(a b c d))
+  > (filter (lambda (x) (< x 3)) '(1 2 3 4))
+  #+END_SRC
+* Exerciții
+  1. Warm-up
+     - Factorialul unui număr
+     - Verificarea dacă o listă este palindrom (hint: folosind
+       =reverse=)
+  2. Funcții de ordin superior
+     - map, zipWith
+     - foldl, foldr
+     - filter
+  3. Alte exerciții, folosind funcții de ordin superior
+     - Flatten pentru liste imbricate
+     - Gruparea elementelor consecutive identice
+     - Listă de perechi =(element nr_apariții)= pentru elemente
+       consecutive identice
+     - Același lucru ca punctul anterior, dar pentru liste arbitrare
+  4. Rotația cu n poziții la stânga/dreapta a unei liste
+  5. Curry/uncurry
+     - Adunarea a două numere, funcție în formă curry
+     - Funcție care transformă o funcție binară curry->uncurry
+     - Funcție care transformă o funcție binară uncurry->curry

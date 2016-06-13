@@ -1,0 +1,190 @@
+#+TITLE: Paradigme de Programare, laboratorul 11
+#+SUBTITLE: Prolog: Introducere
+
+* Reminder: scopul PP; introducere în programarea logică
+  Să facem un pas înapoi: de ce facem PP? Vrem să ne uităm la *modele de
+  programare* diferite de cel cu care am fost obișnuit (mașina Turing,
+  mașina Von Neumann) pentru a rezolva anumite clase de probleme mai
+  eficient, pentru a putea programa mai ușor în anumite cazuri, etc.
+
+  Toate modelele de la PP sunt echivalente computațional cu mașina
+  Turing; asta înseamnă că în mod fundamental putem face cu ele orice
+  facem și cu limbajele imperative (studiate la PC, POO, etc.).
+
+  - Programarea logică :: ne spune că programele sunt echivalente cu
+       propoziții logice; astfel rularea unui program e echivalentă cu
+       demonstrarea (determinarea) în mod mecanic a valorii de adevăr a
+       unor propoziții.
+
+  Programarea logică ne oferă un mecanism de calcul foarte puternic,
+  prin care noi descriem programele în mod declarativ, iar mașina de
+  calcul caută automat toate soluțiile posibile (dacă există). O să
+  vedem că în particular Prolog folosește backtracking pentru a explora
+  spațiul problemei.
+* Cum rulăm Prolog
+  - Comanda :: =swipl=
+  - Încărcare fișier :: =consult('fisier.pl').= -- atenție, punctul de
+       la sfârșit e obligatoriu.
+  - Reîncărcarea fișierului :: =make.=
+  - Consola Prolog :: =?-=, urmată de o "comandă" care se termină mereu
+       cu caracterul punct. Atunci când o "comandă" dă mai multe
+       soluții, acestea pot fi enumerate cu caracterul punct și virgulă,
+       sau căutarea poate fi oprită cu caracterul punct.
+* Elemente de bază în Prolog
+  Dincolo de sintaxă (pe care o vom învăța la nivel intuitiv), vizavi de
+  Prolog suntem interesați despre *cum reprezentăm datele*, *cum
+  reprezentăm calculele* și *cum dăm comenzi*:
+
+  - Reprezentarea datelor :: este dată de *fapte*. De exemplu:
+       
+       #+NAME: Exemplu fapte Prolog
+       #+BEGIN_SRC prolog
+       are(ana, mere).
+       are(gigel, pere).
+       are(matei, mere).
+
+       e_foame(gigel).
+       e_foame(matei).
+       #+END_SRC
+
+       sunt fapte salvate în *baza de cunoștințe* a programului (un
+       fișier text încărcat din consola Prolog). Putem apoi să consultăm
+       existența faptelor în consolă:
+
+       #+NAME: Exemplu interogări consolă
+       #+BEGIN_SRC prolog
+       ?- are(ana, mere).
+       true
+       ?- are(X, mere).
+       X = ana ;
+       X = matei.
+       #+END_SRC
+
+       Observăm că a doua interogare are două soluții, pe care le-am
+       enumerat cu =;=.
+
+       Simbolurile care încep cu literă mare se numesc
+       *variabile*. Pentru interogările care conțin variabile, acestea
+       din urmă vor fi legate (printr-un proces numit *unificare*) la
+       valori concrete pentru fiecare soluție în parte.
+  - Reprezentarea calculelor :: este dată de *reguli*. Să presupunem că
+       dorim să reprezentăm acțiunea de a mânca în exemplul
+       anterior. Presupunem că o persoană poate mânca ceva dacă are acel
+       ceva *și* dacă îi este foame:
+
+       #+NAME: Exemplu regulă Prolog
+       #+BEGIN_SRC prolog
+       mananca(X, Y) :- are(X, Y), e_foame(X).
+       #+END_SRC
+
+       Putem face interogări cu =mananca= la fel ca mai devreme:
+
+       #+NAME: Exemplu de interogare reguli
+       #+BEGIN_SRC prolog
+       ?- mananca(ana,X).
+       false.
+       ?- mananca(X, mere).
+       X = matei.
+       % sau chiar
+       ?- mananca(X, Y).
+       ...
+       #+END_SRC
+
+       Observăm că cuvântul-cheie =:-= are semnificația de *implicație
+       logică la stânga*, în timp ce virgula are semnificație de *și*
+       logic. Caracterul punct și virgulă are semnificație de *sau*
+       logic.
+  - Comenzile Prolog :: (date în consolă) se mai numesc și *scopuri*. În
+       cazul în care scopul face match pe o *regulă*, predicatele din
+       dreapta implicației logice vor deveni *sub-scopuri* pe care
+       Prolog va încerca să le satisfacă.
+       
+       Observăm că folosind elementele de mai sus putem scrie orice fel
+       de programe Prolog. La fel ca în programarea funcțională, buclele
+       le putem implementa folosind recursivitate explicită, însă
+       structura de control nu este un =if= explicit, ci programul se va
+       opri atunci când nu mai pot fi satisfăcute scopuri.
+
+       De exemplu în cazul scopului:
+
+       #+BEGIN_SRC prolog
+       ?- mananca(ana,X).
+       #+END_SRC
+
+       programul se va opri întorcând =false=, deoarece va încerca să
+       gasească un scop de forma =are(ana, X)=, unde =X= va fi legat la
+       =mere=, însă va eșua când încearcă să satisfacă =e_foame(ana)=.
+
+       De exemplu în cazul scopului:
+
+       #+BEGIN_SRC prolog
+       ?- mananca(X, mere).
+       #+END_SRC
+
+       se va căuta întâi găsirea unui sub-scop care satisface =are(X,
+       mere)=; întâi se va face unificarea =X = matei=, după care se va
+       căuta valoarea de adevăr pentru =e_foame(matei)=, care întoarce
+       la rândul ei =true=; apoi se va face unificarea =X = ana=, care
+       va eșua din același motiv ca mai devreme.
+* Programarea folosind Prolog
+  Ca o paranteză, listele se reprezintă în mod similar cu limbajele
+  funcționale („cons” e acum =|=):
+
+  #+NAME: Exemple liste în Prolog
+  #+BEGIN_SRC prolog
+  ?- X = [1,2,3], Y = [1|[2,3,4]], Z = [].
+  #+END_SRC
+
+  Deci, putem rezolva problema clasică a sumei elementelor dintr-o listă
+  în felul următor:
+
+  #+NAME: Suma elementelor dintr-o listă în Prolog
+  #+BEGIN_SRC prolog
+  %suma(+Listă, -Număr)
+  suma([], 0).
+  suma([X|XS], N) :- suma(XS, N1), N is X + N1.
+  #+END_SRC
+
+  #+NAME: Exemple de utilizare suma
+  #+BEGIN_SRC prolog
+  ?- suma([1,2,3], 10).
+  false.
+  ?- suma([1,2,3], 6).
+  true.
+  ?- suma([1,2,3,4], X).
+  X = 10.
+  #+END_SRC
+
+  Deci predicatul =suma= e format din:
+
+  - *Faptul* că suma elementelor listei vide este 0 (cazul e bază);
+  - *Regula* că suma elementelor unei liste nevide =[X|XS]= este =N=
+    *dacă* suma lui =XS= este =N1=, iar =N= este calculat a fi =X + N1=.
+
+  Observăm că recursivitatea este pe stivă: întâi calculăm recursiv suma
+  listei mai mici, după care pe întoarcere calculăm (folosind =is=)
+  rezultatul parțial.
+
+  Observăm de asemenea că am marcat prin convenție cu =+Listă=
+  argumentul listă *de intrare*, și cu =-Număr= argumentul număr *de
+  ieșire*. Aceasta e o constrângere dată de folosirea lui =is= pentru a
+  evalua rezultatele parțiale, însă în anumite cazuri putem avea
+  argumente care sunt și de ieșire și de intrare; de exemplu:
+
+  #+BEGIN_SRC prolog
+  ?- reverse([1,2,3], X).
+  X = [3, 2, 1].
+  ?- reverse(X, [1,2,3]).
+  X = [3, 2, 1] ; % observăm că în cazul ăsta s-au mai căutat soluții
+  false.
+  ?- reverse([1,2,X], [3,2,1]).
+  X = 3.
+  #+END_SRC
+* Detalii tehnice Prolog
+  - Procesul de *unificare* poate fi făcut explicit folosind =X =
+    expresie=.
+  - Evaluarea aritmetică poate fi făcută folosind =is= și (la
+    egalitate), operatorul "=:=".
+  - Până la evaluara aritmetică, o expresie cum ar fi de exemplu =2 + 3=
+    e o structură ca oricare alta.
+  - Negarea, =\+=.

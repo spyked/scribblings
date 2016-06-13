@@ -1,0 +1,37 @@
+#+TITLE: PP-CB Lab 1
+
+* Intro și idei generale
+  - De ce facem PP?
+  - Programarea (corectă) e o disciplină grea. Programele sunt greu de
+    asimilat de mintea umană, e ușor de introdus bug-uri până și în
+    programe simple (e.g. implementarea sortării unei liste).
+  - Studiem abordări noi de programare, în diverse limbaje
+  - elf.cs.pub.ro/pp-cb
+* Lab 1: recapitulare tip de date abstract listă
+  - Cum sunt definite formal listele?
+
+    Orice listă are una din următoarele valori:
+    + Lista vidă: o notăm []?
+    + O pereche ordonată formată dintr-o valoare și o altă listă: o
+      notăm a : L, unde a e o valoare și L e o listă.
+
+    Astfel, fiind dată o listă L, putem defini următoarele operații/funcții pe ea:
+    + head (a : L) = a <-- întoarce primul element din listă
+    + tail (a : L) = L <-- întoarce restul listei
+
+    Observație: head și tail nu sunt definite pe lista vidă.
+
+    În plus, mai vrem să definim următoarele operații:
+    + Accesarea elementului de pe o poziție dată: get(pozitie, lista)
+    + Ștergerea elementului de pe o poziție dată: remove(pozitie, lista)
+    + Inserarea unui element pe o poziție dată: insert(element, pozitie, lista)
+
+    *Notă*: ultimele trei operații pot fi implementate pe baza primelor două.
+  - Ne dorim să implementăm TDA-ul listă *în C* în două moduri:
+    + Array
+    + Listă simplu înlănțuită
+  - Ideal e necesar să implementăm separat doar definiția structurii de
+    date, head și tail, în rest implementarea celorlalte funcții e
+    comună.
+* ArrayList
+* LinkedList

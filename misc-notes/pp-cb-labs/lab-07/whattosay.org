@@ -1,0 +1,96 @@
+#+TITLE: Paradigme de programare, laboratorul 7
+#+SUBTITLE: Tipuri de date abstracte, partea a doua: polimorfism, clase de tipuri
+
+* Polimorfism
+  Ideea de bază a polimorfismului: dorim să avem o interfață comună care
+  să rezolve aceeași problemă pe structuri de date diferite. Noi studiem
+  două tipuri de polimorfism:
+
+  - Polimorfismul parametric: e.g.
+
+    #+BEGIN_SRC haskell
+    identity :: a -> a
+    identity x = x
+    #+END_SRC
+
+    este polimorfică parametric deoarece acceptă *orice* tip de date
+    =a=. În plus, implementarea funcției este identică pentru toate
+    tipurile posibile.
+
+    *Observație*: Ne putem uita la polimorfismul parametric ca la o
+    cuantificare universală peste tipuri.
+
+    *Observație*: Avem polimorfism parametric în alte limbaje?
+    *Da*. Java generics.
+  - Polimorfismul ad-hoc permite implementarea unei interfețe pentru mai
+    multe tipuri, dar în general nu pentru toate. În Haskell
+    polimorfismul ad-hoc este implementat cu ajutorul claselor de
+    tipuri.
+
+    *Observație*: Avem polimorfism ad-hoc în alte limbaje?
+    *Da*. Interfețe, supraîncărcarea funcțiilor. Clasele de tipuri
+    Haskell sunt foarte similare cu interfețele Java.
+
+  Mai departe vom discuta despre clasele de tipuri.
+* Clase de tipuri
+  Clasele de tipuri sunt foarte similare cu interfețele din Java,
+  i.e. definiția unei clase de tipuri poate sau nu să conțină
+  implementări implicite ale funcțiilor, și în general implementarea va
+  fi *instanțiată* pentru diverse tipuri.
+
+  Să luăm ca exemplu clasa de tipuri =Show=, definită astfel:
+
+  #+BEGIN_SRC haskell
+  class Show a where
+    show :: a -> String
+  #+END_SRC
+
+  =Show= e un =toString= al Haskell-ului, deci utilitatea ei principală
+  e aceea că permite afișarea tipurilor de date pe ecran. Singura metodă
+  a clasei =Show= este funcția =show=:
+
+  #+BEGIN_SRC haskell
+  > :t show
+  show :: Show a => a -> String
+  #+END_SRC
+
+  - *Observație*: alte clase de tipuri, de exemplu =Num=, =Eq=, =Ord=:
+
+    #+BEGIN_SRC haskell
+    > :t 42
+    42 :: Num a => a
+    > :t (==)
+    (==) :: Eq a => a -> a -> Bool
+    > :t (>)
+    (>) :: Ord a => a -> a -> Bool
+    #+END_SRC
+
+  Până acum i-am zis compilatorului Haskell să implementeze automat
+  =Show=, folosind mecanismul =deriving=. Să presupunem de exemplu că
+  dorim să definim un tip de date pereche:
+
+  #+BEGIN_SRC haskell
+  data Pair a b = P a b deriving Show
+  #+END_SRC
+
+  Dacă renunțăm la =deriving=, perechea nu va mai fi afișabilă. Să
+  încercăm să definim de data asta manual o instanță de =Show= pentru
+  =Pair=, care afișează perechile la fel ca =(a,b)=:
+
+  #+BEGIN_SRC haskell
+  data Pair a b = P a b
+
+  instance Show (Pair a b) where
+    show (P x y) = "(" ++ show x ++ "," ++ show y ++ ")"
+  #+END_SRC
+
+  Definiția de mai sus nu o să funcționeze. Primim eroarea "No instance
+  for (Show a)", respectiv la fel pentru =b=, pentru că apelăm =show x=
+  și =show y=, iar =x= și =y= sunt de tipul =a=, respectiv =b=.
+
+  Pentru a rezolva problema, adăugăm următoarea restricție:
+
+  #+BEGIN_SRC haskell
+  instance (Show a, Show b) => Show (Pair a b) where
+    show (P x y) = "(" ++ show x ++ "," ++ show y ++ ")"
+  #+END_SRC

@@ -1,0 +1,145 @@
+#+TITLE: Paradigme de Programare, Laboratorul 3, funcții
+
+* Funcții, funcții Haskell
+  *Funcție*: construcție care primește la intrare o valoare și întoarce
+   o altă valoare.
+
+   Putem stabili o corespondență între funcțiile din matematică și
+   funcțiile din limbajele studiate până acum (e.g. C)?
+
+   - Răspunsul este *da*. De exemplu având funcția C =max=:
+
+     #+NAME: Prototip maxim între două valori în C
+     #+BEGIN_SRC c
+     int max(int a, int b);
+     #+END_SRC
+
+     am putea să o declarăm matematic drept:
+
+     #+BEGIN_SRC
+     max : Z x Z -> Z
+     #+END_SRC
+
+   În Haskell putem să definim =max= sub forma:
+
+   #+NAME: max în Haskell
+   #+BEGIN_SRC haskell
+   myMax a b = if a > b then a else b
+   #+END_SRC
+* Funcții de ordin superior
+  În limbajele funcționale funcțiile sunt *valori de prim rang*, adică
+  pot fi folosite ca orice alte valori; de exemplu le putem transmite ca
+  parametru altor funcții?
+
+  Putem face asta în limbajele studiate până acum?
+
+  - În principiu *da*, prin pointeri la funcții în C, function objects
+    în C++ și Java, etc. însă Haskell, Scheme, Lisp oferă o
+    flexibilitate mult mai mare în lucrul cu funcții.
+
+  De exemplu funcția succesor:
+
+  #+NAME: Succesor în Haskell
+  #+BEGIN_SRC haskell
+  succ x = x + 1
+  #+END_SRC
+
+  E de fapt echivalentă cu:
+
+  #+NAME: Succesor în Haskell (lambda)
+  #+BEGIN_SRC haskell
+  succ = \ x -> x + 1
+  #+END_SRC
+
+  unde =\= are semnificația de "lambda", iar expresia =\ x -> x + 1=
+  este o *funcție anonimă*.
+
+  Putem defini astfel *funcții de ordin superior*: funcții care primesc
+  alte funcții ca parametri, și le pot aplica pe valori date. De
+  exemplu:
+
+  #+NAME: O funcție care aplică o altă funcție și înmulțește cu 2
+  #+BEGIN_SRC haskell
+  applyAndDouble f x = (f x) * 2
+  #+END_SRC
+
+  Pe care o putem evalua dând =succ= (sau altă funcție) ca parametru:
+
+  #+NAME: Exemple evaluare
+  #+BEGIN_SRC haskell
+  > applyAndDouble succ 1
+  4
+  > applyAndDouble (\ x -> x + 2) 1
+  6
+  > applyAndDouble (* 2) 1 -- (* 2) e zahăr pentru \ x -> x * 2
+  4
+  #+END_SRC
+* Currying
+  Spuneam mai devreme că funcțiile cu mai mulți parametri (e.g. =max=)
+  au forma în limbajele studiate anterior:
+
+  #+BEGIN_SRC
+  max : Z x Z -> Z
+  #+END_SRC
+
+  În Haskell putem defini max ca pe o funcție anonimă:
+
+  #+NAME: max ca un lambda
+  #+BEGIN_SRC haskell
+  myMax' = \ a b -> if a > b then a else b
+  #+END_SRC
+
+  dar definiția de mai sus e echivalentă cu:
+
+  #+NAME: max ca un lambda închis în alt lambda
+  #+BEGIN_SRC haskell
+  myMax'' = \ a -> \ b -> if a > b then a else b
+  #+END_SRC
+
+  ceea ce în limbaj matematic, s-ar traduce drept:
+
+  #+BEGIN_SRC
+  max : Z -> (Z -> Z)
+  #+END_SRC
+
+  Cu alte cuvinte, =max= e o funcție care primește ca parametru un număr
+  întreg și întoarce o funcție. Funcția întoarsă primește ca parametru
+  un număr întreg și întoarce un alt număr.
+
+  Deci putem spune, de exemplu:
+
+  #+NAME: exemplu max
+  #+BEGIN_SRC haskell
+  -- aici (max 2) e o funcție pe care o aplicăm pe 3
+  > (myMax' 2) 3
+  3
+  > applyAndDouble (myMax'' 2) 1
+  4
+  #+END_SRC
+
+  Spunem că funcțiile Haskell sunt implicit în *formă curry*.
+
+  Putem scrie =max= ca pe o funcție uncurry? Da, dând ca parametru
+  explicit o pereche:
+
+  #+NAME: max uncurry
+  #+BEGIN_SRC haskell
+  maxUncurry (a, b) = if a > b then a else b
+  #+END_SRC
+
+  Exercițiu: consultați în GHCi tipurile funcțiilor =max= definite
+  anterior.
+* Închideri funcționale
+  *Închidere*: funcție care pe lângă aparițiile legate (e.g. valorile
+   transmise ca parametru) reține și definițiile aparițiilor nelegate.
+
+   De exemplu:
+
+   #+NAME: exemplu de închidere
+   #+BEGIN_SRC haskell
+   y = 2
+   -- în definiția lui f, y va fi legată la 2
+   f x = x + y
+   -- definiția lui g va lega y la valoarea dată ca parametru
+   g x y = x + y
+   #+END_SRC

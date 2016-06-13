@@ -1,0 +1,125 @@
+#+TITLE: Paradigme de programare, laboratorul 8
+#+SUBTITLE: Întârzierea evaluării
+
+* Evaluarea în limbajele de programare în general
+  Să luăm ca exemplu un imperativ limbaj cunoscut, e.g. C. În principiu
+  modul în care se evaluează statement-urile e dat de operatorul de
+  secvențiere =;= și de precedența operatorilor. După cum am văzut însă
+  și în primul laborator, avem și cazuri în care ordinea evaluării e
+  nespecificată. De exemplu la apelul funcțiilor nu e specificată o
+  ordine de evaluare a parametrilor.
+
+  De asemenea, evaluarea anumitor operatori nu se face întotdeauna
+  complet. Ce o să întoarcă următorul exemplu?
+
+  #+NAME: Exemplu lucru cu operatori logici în C
+  #+BEGIN_SRC c
+  int main(void)
+  {
+    int i = 0;
+
+    1 || (++i);
+    printf("%d\n", i);
+
+    return 0;
+  }
+  #+END_SRC
+
+  Observăm că al doilea termen al expresiei =1 || (++i);= nu se
+  evaluează, fiindcă =1 || x;= o să întoarcă mereu "adevărat", oricare
+  ar fi =x=. Acesta este un caz de *evaluare leneșă*.
+
+  În general există două tipuri de evaluare în limbajele de programare:
+
+  - evaluarea aplicativă: expresiile sunt evaluate pe măsură ce sunt
+    întâlnite, e.g. la apelul unei funcții, parametri sunt evaluați
+    înainte de corpul funcției; se aplică și la C, unde parametrii sunt
+    pasați implicit prin valoare.
+  - evaluarea normală: expresiile sunt evaluate întârziat, atunci „când
+    e nevoie”.
+    + Un caz particular al evaluării normale este evaluarea leneșă, care
+      garantează evaluarea *o singură dată* a unei expresii, și
+      memorarea ei, pentru refolosirea ulterioară a
+      rezultatului. Mecanismul prin care se face asta se numește
+      *promisiune*.
+* Evaluarea în Haskell
+  În Haskell, evaluarea este implicit leneșă. Putem ilustra asta
+  folosind următorul exemplu:
+
+  #+NAME: Exemplu de evaluare leneșă în Haskell
+  #+BEGIN_SRC haskell
+  f x = f x -- nu se termină niciodată
+  g x y = x
+
+  -- cum se va evalua următoarea expresie:
+  > g 3 (f 2)
+  #+END_SRC
+
+  Avantajul imediat al evaluării leneșe este că se evită calculele
+  posibil inutile. De exemplu apelul:
+
+  #+BEGIN_SRC haskell
+  > head [1,2,3,4,5,6]
+  #+END_SrC
+
+  nu trebuie să evalueze întreaga listă pentru a întoarce rezultatul. E
+  de ajuns să se facă pattern matching pe primul element și să îl
+  întoarcă pe acesta, fără ca restul listei să fie „atins”.
+
+  Un avantaj mai puțin intuitiv este că Haskell ne permite lucrul facil
+  cu structuri de date așa-zis infinite, după cum vom vedea imediat.
+* Aplicații cu evaluarea leneșă, fluxuri
+  Structurile de date „infinite” sunt construcții prin care putem modela
+  calcule care nu se termină, e.g. șiruri de numere, într-un mod
+  elegant. Aceste structuri de obicei se construiesc în mod *generativ*:
+  se pleacă de la un element inițial al structurii și se aplică în mod
+  repetat o procedură de generare a elementelor noi.
+
+  - *Observație*: O aplicație a structurilor de date infinite sunt
+    jocurile cu niveluri generate procedural. De exemplu am putea face
+    asta în Minecraft, există RPG-uri unde se face deja așa ceva.
+
+  - *Observație*: Cunoașteți alte exemple de structuri de date așa-zis
+    infinite? De exemplu sockeții, fișiere speciale precum =/dev/zero=,
+    =/dev/urandom=, etc. pot fi văzute ca fluxuri (după cum vom vedea
+    mai jos).
+
+  În Haskell, e foarte ușor să vedem listele ca *fluxuri*. De exemplu,
+  putem modela un șir care conține cifra zero definindu-l astfel:
+
+  #+NAME: zeroes în Haskell
+  #+BEGIN_SRC haskell
+  zeroes = 0 : zeroes
+  #+END_SRC
+
+  și putem extrage un număr arbitrar de elemente din el astfel:
+
+  #+BEGIN_SRC haskell
+  > take 20 zeroes
+  #+END_SRC
+
+  Cum definim numerele naturale în mod similar? Avem nevoie de o
+  procedură cu un parametru:
+
+  #+NAME: Șirul numerelor naturale în Haskell
+  #+BEGIN_SRC haskell
+  naturals = let mk_nats n = n : mk_nats (n + 1)
+             in mk_nats 0
+  > take 20 naturals
+  #+END_SRC
+* Exerciții
+  1. Șirul de numere pare
+  2. Șirul lui Fibonacci
+  3. O funcție =build :: (a -> a) -> a -> [a]= care primește o funcție
+     „generator” și construiește lista aplicărilor repetate ale
+     generatorului.
+  4. O funcție =select= care primește o toleranță =e= și o listă
+     (infinită) și întoarce valoarea =an= care satisface proprietatea
+     =|an -a{n+1}| < e=.
+  5. Aproximație pentru sqrt
+  6. Aproximație pentru derivata unei funcții =f= într-un punct =a=.
+  7. Aproximație pentru integrala unei funcții pe intervalul =[a,b]=
+
+
+
+

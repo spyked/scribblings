@@ -1,0 +1,4 @@
+#+TITLE: Paradigme de Programare, laboratorul 12
+#+SUBTITLE: Prolog: Non-determinism
+
+* No theorems to prove
