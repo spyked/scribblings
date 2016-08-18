@@ -13,6 +13,8 @@ Sfaturi generale pentru scrierea unui paper
   anumite cazuri o să fiți nevoiți să folosiți „\verb”, de exemplu
   pentru a evita problemele cu caractere speciale în LaTeX („_”) și
   pentru a evita spargerea pe mai multe rânduri.
+* Folosiți italic (e.g. „\textit” sau „\emph” în LaTeX) pentru cuvinte
+  importante sau traduceri de cuvinte/expresii.
 * Folosiți  label-uri (în  LaTeX) sau  references (în  Word/LibreOffice)
   pentru  referirea secțiunilor,  tabelelor, etc.  Mai multe  detalii pe
   [WikiBooks][1].
@@ -31,7 +33,8 @@ Sfaturi generale pentru scrierea unui paper
   de gândire per ansamblu al paper-ului.
 * Folosiți citări pentru a referi alte paper-uri. Pentru LaTeX, puteți
   căuta paper-urile cu Google Scholar și obține direct citările în
-  format BibTeX.
+  format BibTeX. De asemenea, puteți folosi platforme online precum
+  [citeulike][2], [Mendeley][3] sau [Zotero][4].
 
 ## Structurarea logică
 
@@ -64,6 +67,8 @@ Sfaturi generale pentru scrierea unui paper
   stabili presupuneri despre adversar/utilizator (de-aia apar mai ales
   în paper-urile de security) și limitări ale soluției (i.e. ce probleme
   *nu* sunt rezolvate).
+* Secțiunea introductivă conține de obicei un sumar al contribuțiilor
+  științifice (noi) descrise în articol.
 * Secțiunea introductivă se încheie de obicei cu un paragraf care
   descrie foarte pe scurt fiecare secțiune în parte din cele rămase.
 * Orice secțiune începe de obicei cu un paragraf care o sumarizează pe
@@ -95,3 +100,6 @@ Sfaturi generale pentru scrierea unui paper
   evaluare, etc.
 
 [1]: https://en.wikibooks.org/wiki/LaTeX/Labels_and_Cross-referencing
+[2]: http://www.citeulike.org/
+[3]: https://www.mendeley.com/
+[4]: https://www.zotero.org/
