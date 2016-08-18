@@ -5,18 +5,18 @@ Sfaturi generale pentru scrierea unui paper
 
 * Citarea trebuie să fie pe același rând cu cuvântul dinainte, separată
   prin spațiu. LaTeX poate introduce linebreak acolo unde găsește
-  spațiu, astfel că trebuie să folosiți „~” pentru a lega cuvântul și
-  tag-ul „\cite” în același bloc, e.g. „Microkernel~\cite{lietdke}”. Nu
+  spațiu, astfel că trebuie să folosiți `~` pentru a lega cuvântul și
+  tag-ul `\cite` în același bloc, e.g. `Microkernel~\cite{lietdke}`. Nu
   știu cum/dacă se poate face asta în Word sau LibreOffice.
-* Folosiți monospace (e.g. „\texttt” în LaTeX) pentru a reprezenta nume
+* Folosiți monospace (e.g. `\texttt` în LaTeX) pentru a reprezenta nume
   de funcții, nume de fișiere, căi în sistemul de fișiere, etc. În
-  anumite cazuri o să fiți nevoiți să folosiți „\verb”, de exemplu
-  pentru a evita problemele cu caractere speciale în LaTeX („_”) și
+  anumite cazuri o să fiți nevoiți să folosiți `\verb`, de exemplu
+  pentru a evita problemele cu caractere speciale în LaTeX (`_`) și
   pentru a evita spargerea pe mai multe rânduri.
-* Folosiți italic (e.g. „\textit” sau „\emph” în LaTeX) pentru cuvinte
+* Folosiți italic (e.g. `\textit` sau `\emph` în LaTeX) pentru cuvinte
   importante sau traduceri de cuvinte/expresii.
-* Folosiți  label-uri (în  LaTeX) sau  references (în  Word/LibreOffice)
-  pentru  referirea secțiunilor,  tabelelor, etc.  Mai multe  detalii pe
+* Folosiți label-uri (în LaTeX) sau references (în Word/LibreOffice)
+  pentru referirea secțiunilor, tabelelor, etc.  Mai multe detalii pe
   [WikiBooks][1].
 * Conferințele și jurnalele impun de obicei limitări minime/maxime de
   spațiu pentru paper-uri (e.g. pentru multe conferințe limita maximă e
