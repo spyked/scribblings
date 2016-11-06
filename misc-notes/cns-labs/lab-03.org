@@ -1,0 +1,152 @@
+#+TITLE: Computer and Network Security -- Lab 03
+#+SUBTITLE: Executables. Static Analysis
+
+* The rough intro
+  Both static and dynamic analyses (of executable files) lie at the
+  intersection of:
+
+  - Compilers
+  - Linkers and loaders
+  - Operating systems
+
+  (Linkers and loaders are actually sort of the intersection.)
+* Operating system abstractions for programs
+  There are two of them:
+
+  - *The executable file* (static)
+    + There exist both binary and non-binary executable files. Can you
+      name non-binary files that are executable?
+    + Yep, scripts are examples of such files.
+  - *The process* (dynamic)
+
+  In this lab we will deal with the static abstractions, although we
+  might inevitably touch on dynamic ones.
+
+  Flat binary code is not very useful to the operating system. The OS
+  needs to know among others:
+
+  - Where to load the code
+  - Where to load the data
+  - What is the start virtual address of a program
+  - What page permissions are set for various data
+
+  Most of this info is stored in the binary file as *metadata*. This is
+  why OS loaders require specific binary formats, e.g. ELF, a.out,
+  Windows PE, etc.
+
+  Assuming we're working with statically linked executables (we're going
+  to deal with dynamic linking in the next lab) this info is put in the
+  binary file by:
+
+  - the compiler (into object files)
+  - the linker (into the final executable)
+
+  Dynamic linking additionally leaves the resolution of some of the
+  symbols to the loader, via shared libraries.
+* How executables are obtained (the compiler view)
+  Reminder of the compilation process:
+
+  - compilation :: high-level file -> assembly source file
+  - assembly :: assembly source file -> object file
+  - linking :: one or more object files -> executable file (or shared
+       library)
+
+  We're interested in the latter two.
+
+  - /assembly/ generates information for the /linker/, i.e. *symbols*
+    and relocation info for them, *sections*, whether a section is part
+    of the binary and will be loaded, etc.
+  - /linking/ generates information for the /loader/, i.e. the binary
+    *entry point*, *segments* containing load-time information, etc.
+
+  *Note*: a segment may contain multiple sections, so all the sections
+   within a segment will be loaded will the same access rights
+   (e.g. =.rodata= and =.text= are both executable!)
+
+  The practical part of this section is covered in the lab
+  tutorials. Keep in mind:
+
+  - the distinction between /sections/ and /segments/ :: the first tell
+       us how the binary looks (but also some process-related info), the
+       second tell us how the process will look.
+  - that =readelf= is your friend for any info in the ELF files :: play
+       with =readelf -h=, =readelf -S=, =readelf -l=, etc. Peruse the
+       lab for more info.
+  - to not go down the rabbit hole :: computer security relies on *a
+       lot* of knowledge; be patient and read enough to get you started.
+* Static analysis primer
+  Let's reiterate through the tools of the trade from the first lab:
+
+  - =readelf= :: everything ELF related
+  - =objdump= :: disassembly, but overlaps with some =readelf=
+       functionality
+  - =nm= :: symbol information, =readelf= already does this
+  - =strings= ::
+  - =xxd=, =hexdump=, =bless= :: raw binary dumps
+
+  Here's some things that we want to analyze during the labs:
+
+  - The entry point of a program: =readelf -h=
+  - The offset of a symbol in a program: =nm=, =readelf -S=, etc.
+  - What a program does: =objdump -D= (this is a tough one, it requires
+    building up a lot of skill)
+  - Looking at program artifacts, e.g. addresses, and figuring out
+    statically what they mean without necessarily running the program
+  - Determining the address of something in memory, sometimes relative
+    to =esp= or =ebp=
+  - Many others
+* Tasks
+** 1. Shellcode [2p]
+   This one's a tutorial task that explores setting a piece of data in a
+   binary executable. Won't insist on it here, to be discussed in the
+   lab.
+** 2. stripped [2p]
+   This is pretty straightforward, but it requires a lot of work. A
+   short step-by-step approach would be to:
+
+   a. find the entry point, using =readelf -h=: =0x80480c9=
+   b. disassemble the file (=objdump -D=) and look at the entry point;
+      see what addresses it calls and also inspect them
+   c. do this recursively, until the entire code is mapped; notice that
+      the calling convention is somewhat special; notice that =int 0x80=
+      is called;
+
+   We have the main function calling five functions, which also call
+   some functions. =0x80480f1= and =0x80480fe= are implementations for
+   =puts= and =exit= respectively (this can be determined from =eax=,
+   which holds the system call number).
+
+   The other functions just call =puts= and =exit=. In particular
+   =0x8048091= calls =exit=, which is useful to know for task 3.
+** 3. stripped, reloaded [3p]
+   As discussed in the previous task, =0x8048091= calls =exit=. This
+   isn't a straightforward observation, because we don't know for sure
+   that that piece of code is reached at run-time, but we do know that
+   the piece of code that calls =puts= with "All done!" isn't
+   reached. Some manual symbolic execution should work here.
+
+   At =0x80480b3= there's a call to =0x80480fe=. This can be "commented
+   out" by replacing the =call= instruction with NOPs (=0x90= bytes).
+** 4. Memory dump analysis [3p]
+   This is a pretty easy task, except maybe the first question. Let's
+   answer these:
+
+   - Figuring out if we're on a 32-bit system is a bit tricky.
+     + Remember that there's a user-kernel split of the memory address
+       space;
+     + since the address space is limited to 4GB on 32-bit systems, then
+       the upper part of the address space is reserved to the kernel;
+     + what is usually mapped in the upper part of the *user* address
+       space by the OS? yep, it's the stack;
+     + then if the stack starts at =0xb7...=, we're on a native 32-bit
+       system; otherwise (addresses starting at =0xffff...=, we're on a
+       64-bit system, even if we're running a 32-bit binary.
+   - On 32 bits, the text region is usually mapped at =0x804...= and
+     similar addresses.
+   - Invalid addresses should be trivial to spot. :)
+   - The discussion above also encompasses the discussion about stack
+     addresses.
+   - Figuring out the mmap zone is going to be covered in the next
+     lab. :) Use =pmap= to see where processes normally have their heaps
+     mapped.
+** TODO 5. Extra: FixME [3p]

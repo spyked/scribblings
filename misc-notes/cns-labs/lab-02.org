@@ -1,0 +1,16 @@
+#+TITLE: Computer and Network Security -- Lab 02
+#+SUBTITLE: Assembly Language
+
+Haven't had time to fill this in. Anyway, there's not much theory to go
+around on.
+
+As a general idea, the first two labs are ripe for an overhaul. Assembly
+needs to be one of the first things being taught, and we need to take it
+very easy if we're to not give it hard to students who aren't used to
+it.
+
+1. Simple system call [3p]
+2. Looping math [3p]
+3. Funny convention [4p]
+4. Extra: obfuscation [1p]
+5. Extra: platform-independent [1p]

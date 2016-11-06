@@ -1,0 +1,130 @@
+#+TITLE: Computer and Network Security -- Lecture 04
+#+SUBTITLE: Processes. Dynamic Analysis. GDB
+
+* Reminder: static analysis, binary introspection, reverse engineering
+  Figure drawn in the previous lecture.
+
+  - static analysis :: is one big blob of techniques
+  - binary introspection :: subset of static analysis
+    + static analysis isn't necessarily specific to binary files
+    + static analysis may be used for other files than executables
+  - reverse engineering :: (e.g. a program) is just one of the goals for
+       which we can use static analysis
+    + other purposes? finding bugs, for example
+
+  Static analysis is limited. Why?
+
+  - we don't really execute the program, we just look at it
+  - binary files often miss semantic information (e.g. what size does a
+    variable have? what type?)
+  - there may be others?
+* Dynamic analysis
+** Reminder: executable view vs. process view
+   - executable: file containing code (and data)
+   - process: program in execution
+** Definition
+   Dynamic analysis comprises methods to look at running programs.
+** Processes vs. executables
+   - What purpose does dynamic analysis serve with respect to static
+     analysis?
+   - How do we perform dynamic analysis?
+     + We look at processes.
+   - What can we find about a running process?
+* Processes
+** Definition, resources
+   What resources does a process have?
+
+   - Register state
+   - Memory state
+     + Stack, global data, code, ...
+   - Open files, sockets (file descriptor table)
+   - Privileges: UID, GID, limits, etc.
+   - Scheduler state (whether it's running, waiting on I/O, etc.)
+   - ...
+** Stuff that is interesting for us:
+   - Machine code
+   - Registers
+   - Memory mapping, e.g. where is a library mapped?
+* Memory layout
+  Show them the big picture. Look at pmap.
+* What do we investigate?
+  - Code: system calls, library calls, step-by-step instructions (in
+    debugger)
+  - State: thread info, process maps, open files
+  - Data: registers, raw memory data
+* Inspecting code
+  How do we inspect code?
+
+  - Disassembly (=objdump= or GDB)
+  - strace, ltrace
+* Inspecting data
+  - GDB
+* Inspecting state
+  - pmap
+  - lsof
+  - procfs
+* Types of tools
+  - Tracers :: ltrace, strace
+  - Fuzzers :: AFL, BFF, ...
+  - Debugging :: GDB, PEDA
+* Tools overview and demos
+** lsof, pmap -- demo
+** perf -- demo
+** GDB, PEDA, LLDB
+** Hardware tools, e.g. JTAG probes
+* GDB overview
+  - Tool for debugging, but not only
+  - Can be used for security, *is* used for it
+  - Dissection tool for processes
+* GDB for dynamic analysis
+  - Process state inspection
+  - Register inspection
+  - Memory inspection
+  - Memory alteration
+  - Function call tracing
+* GDB demo
+** Hello, world!
+** Run a process
+   - /bin/ls, without arguments
+   - /bin/ls, with arguments
+   - /bin/cat, with inputs
+   - or just embezzle hello world with argument and scanf
+** Breakpoints, stepping (si, ni)
+** Run-time disassembly
+   - e.g. disass printf
+** Displaying data
+   - p $ebp
+   - p *addr
+   - x/10x
+   - x/10i
+   - help p
+   - help x
+** Find data in memory
+   - searchmem
+   - make a small shellcode that calls /bin/sh (get one from shellstorm)
+   - searchmem "hello"
+   - searchmem "sh"
+** Alter data
+   - set $eax = 0
+   - set *0xbabababa = 0
+* Source code -> process process
+* Linking and loading
+* Static linking
+* Dynamic linking
+** Load time
+   - The loader resolves relocations in executable files and shared
+     libraries
+** Run-time
+   - dlsym, dlopen
+* Lazy binding
+* Library locations
+  - are determined at link-time for static linking
+  - are determined by modifying LD_LIBRARY_PATH for dynamic linking
+* Dynamic linking internals
+** Procedure Linkage Table (PLT)
+   - used to resolve symbols at run-time
+   - demo using GDB
+** Global Object Table (GOT)
+   - Same as PLT, only used for variables
+   - .got.plt, for function pointers
+   - Remember lab 2? Demo, look at it.

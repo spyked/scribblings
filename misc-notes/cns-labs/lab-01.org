@@ -1,0 +1,196 @@
+#+TITLE: Computer and Network Security -- Lab 01
+#+SUBTITLE: Introduction. Basic Exploration Tools
+
+* (Re)introduction to CNS (labs)
+  Motivation, the short version:
+
+  - Software has bugs
+  - ... but people code in $highLevelLanguage nowadays
+  - ... but $highLevelLanguage is written in C/C++
+  - ... and system software is written in C/C++
+  - ... and OS kernels are written in C/C++
+  - ... and even if they weren't, web apps have bugs
+  - ... so every level of the software stack may have bugs
+
+  More motivation:
+
+  - Bad people take advantage of bugs
+  - ... see Heartbleed (2012-2014, OpenSSL)
+  - ... and Shellshock (2014, Bash)
+  - ... and the getaddrinfo bug (2015, GNU C Library)
+  - ... and the RNG Whitening bug (2016, OpenPGP)
+  - ... and many of the data leaks
+  - ... and many others
+
+  Even more motivation: even if you don't work in security, as an
+  engineer you're very likely to develop a piece of a system whose bugs
+  might have security implications.
+* Basic tools of the trade
+  Most of the tools of the trade are part of any UNIX system. We'll
+  present them by the things they do:
+
+  - Dumping a file in hex format :: hexdump
+  - Dumping the user-readable strings in a file :: strings
+  - Disassembling a file :: objdump
+  - Reading the ELF header of a file :: readelf
+  - Debugging :: gdb
+  - Tracing system calls :: strace
+
+  Some of them we'll use for some extra help:
+
+  - Disassembly/debugging :: Radare2
+  - Smart and fancy debugging :: PEDA, a wrapper over gdb
+  - Framework for binary hacking :: PwnTools
+
+  These, and more importantly, our brains, is all we need to get
+  hacking.
+* Tasks
+** 1. even-password [1p]
+   We have a binary whose password we need to guess, only we don't need
+   to guess it because it's hardcoded in the binary. This is a good
+   starting point for =r2=.
+
+   #+BEGIN_EXAMPLE
+   $ r2 even-password
+   [0x08048400]> af@main # analyze function
+   [0x08048400]> pdf@main
+   / (fcn) main 111
+   |  main ();
+   ...
+   #+END_EXAMPLE
+
+   Let's look only at the call instructions in =main=:
+
+   #+BEGIN_EXAMPLE
+   0x0804850d      e88efeffff     call sym.imp.printf
+   0x0804851a      e891feffff     call sym.imp.fflush
+   0x0804852e      e8bdfeffff     call sym.imp.__isoc99_scanf
+   0x08048542      e849feffff     call sym.imp.strcmp
+   #+END_EXAMPLE
+
+   The call to =strcmp= is the most interesting, because this is most
+   probably what the program does to check whether we have the right
+   password. So let's look around it:
+
+   #+BEGIN_EXAMPLE
+   0x08048533      c74424041686.  mov dword [esp + local_4h], str.thecakeisalie
+   0x0804853b      8d442412       lea eax, dword [esp + local_12h] ; 0x12
+   0x0804853f      890424         mov dword [esp], eax
+   0x08048542      e849feffff     call sym.imp.strcmp
+   0x08048547      85c0           test eax, eax
+   0x08048549      750e           jne 0x8048559
+   #+END_EXAMPLE
+
+   The first line is interesting, because it tells us the string
+   "thecakeisalie" is pushed to the stack before the call to
+   =strcmp=. For fun, let's also look at =strings=:
+
+   #+BEGIN_EXAMPLE
+   $ strings even-password
+   ... # stuff
+   Enter password:
+   %13s
+   thecakeisalie
+   Congratulations, the test is now over.
+   Cake, and grief counseling, will be available at the conclusion of the test.
+   ... # more stuff
+   #+END_EXAMPLE
+
+   So running the program we get:
+
+   #+BEGIN_EXAMPLE
+   $ ./even-password
+   Enter password: thecakeisalie
+   Congratulations, the test is now over.
+   #+END_EXAMPLE
+** 2. odd-password [2p]
+   This is similar to the previous task, only the password is not an
+   ASCII string. Three key ideas here:
+
+   - The password isn't necessarily a number or a string, it could also
+     be explicitly hard coded using some instructions.
+   - Start by looking at what functions are called. One function that we
+     don't know from any libraries is =is_good=. What does it do?
+   - You will need to output non-ASCII characters to make this work. For
+     example:
+
+     #+BEGIN_SRC python
+     print "\x02" * 20 + "\x03"
+     #+END_SRC
+
+     prints the byte 0x2 twenty times, followed by 0x3. *Note*: this
+     will be *very* useful throughout the labs.
+
+   At the end you will notice that =is_good= compares some non-ASCII
+   characters byte by byte.
+** 3. halting-problem [2.5p]
+   The purpose of this task is to acquaint yourself with hex editing. So
+   fire up Bless or xxd (or Emacs' hexl-mode if you're a fan!) and get
+   groovin'.
+
+   The idea is pretty simple: the program calls =sleep= with a very big
+   value. This value can be edited by hand using a hex editor.
+
+   objdump and R2 output the address relative to the entry point. In
+   particular objdump can also print the file-relative offset of a
+   function with the =-F= flag. So either compute that using a
+   calculator or search for the opcode of the =mov= instruction and the
+   immediate value within the file.
+** 4. straceme [2p]
+   This exercise illustrates the pros and limitations of dynamic
+   analyses.
+
+   Running =./straceme= yields no valuable output. =strace=-ing the run
+   doesn't reveal anything. This means that we can have programs which
+   trigger useful events at run-time only in certain cases!
+
+   Run the program in GDB and break on =main=. PEDA would be good to
+   have here, so it's recommended to install it. Running instruction by
+   instruction using =stepi= reveals the following set of instructions:
+
+   #+BEGIN_EXAMPLE
+   ...
+   0x804852f <main+3>:  and    esp,0xfffffff0
+   0x8048532 <main+6>:  sub    esp,0x40
+   0x8048535 <main+9>:  mov    DWORD PTR [esp+0x10],0x706d742f
+   0x804853d <main+17>: mov    DWORD PTR [esp+0x14],0x736e632f
+   0x8048545 <main+25>: mov    DWORD PTR [esp+0x18],0x58585858
+   0x804854d <main+33>: mov    WORD PTR [esp+0x1c],0x5858
+   0x8048554 <main+40>: mov    BYTE PTR [esp+0x1e],0x0
+   0x8048559 <main+45>: cmp    DWORD PTR [ebp+0x8],0x2
+   0x804855d <main+49>: je     0x8048569 <main+61>
+   0x804855f <main+51>: mov    eax,0x1
+   0x8048564 <main+56>: jmp    0x8048677 <main+331>
+   0x8048677 <main+331>:        leave  
+   0x8048678 <main+332>:        ret
+   ...
+   #+END_EXAMPLE
+
+   So nothing interesting happens until the =cmp [ebp+0x8], 0x2=, which
+   alters the program's path. If we run again and we examine =$ebp +
+   0x8= at =main+45=, we see it has the value 1.
+
+   The following should be enough hints to help the hacker figure it
+   out:
+
+   - What does the program put on the stack at =$ebp + 8=?
+   - What could have the value 1 when entering in =main=?
+
+   It's not obvious. But anyway, once you figure that out, re-run the
+   program "the right way" and strace it again. By looking through the
+   trace you should eventually find the right answer.
+** 5. guesser [2.5p]
+   This one is very straightforward if we take a careful look through
+   the binary. It opens =/dev/urandom= and calls =read= with it as a
+   file descriptor. It puts the read data at a place which you will have
+   to figure out and then it compares that data with user input.
+
+   The hardest part is figuring out where the buffer is kept in
+   memory. Breakpoint using gdb immediately after the call to =read=,
+   leak the data by examining the memory, then use the data as
+   input. Win!
+** 6. bonus ARM tasks [2p]
+   Nothing new here. :) This is the exact same thing, only on another
+   architecture. The main difference is the calling convention, so
+   you'll have to read RISC code to figure out things.
+* Feedback

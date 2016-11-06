@@ -1,0 +1,10 @@
+#+TITLE: Lab 04 demo
+
+- Explain =get_got=: how the pointer to GOT is taken, how the memory is
+  scanned for =push= opcodes, how the PLT offsets are of fixed length,
+  etc.
+- Show compilation with GCC 6.2 (PIE)
+- Explain why it doesn't work
+- Show compilation with =-no-pie=
+- Explain why we think this doesn't work
+- Illustrate compilation with GCC 5

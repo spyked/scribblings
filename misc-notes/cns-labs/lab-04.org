@@ -1,0 +1,132 @@
+#+TITLE: Computer and Network Security -- Lab 04
+#+SUBTITLE: Processes. Dynamic Analysis
+
+* Operating system abstractions, redux
+  As discussed in the previous labs, there are two fundamental
+  abstractions that interest us, each corresponding to each view of
+  programs inside an operating system:
+
+  - files :: correspond to the static view, that of executable code
+  - processes :: correspond to the dynamic view, of the running program
+
+  So far we've been looking at statically linked files and the static
+  view. However, operating systems provide the possibility of *dynamic
+  linking*, which we will look at in more detail.
+* Dynamic linking
+  In the previous lab we only dealt with statically linked binaries,
+  i.e. binaries whose symbols are fully resolved at link-time.
+
+  However, operating systems offer two additional types of executable
+  files:
+
+  - dynamically linked executable files :: similar to statically linked
+       executable files, only some of the symbols may be unresolved
+       after the linking phase; e.g. doing
+
+       #+BEGIN_SRC
+       $ gcc -o main main.c
+       #+END_SRC
+
+       will most likely result in a dynamically linked executable on
+       modern systems.
+
+  - shared object files :: a cross between "dynamically linked" and
+       "object files"; they don't necessarily have an entry point, but
+       they can be linked with existing executables at load-time.
+
+       The simplest example is the C library, which is present on all
+       modern UNIX systems.
+** Dynamic symbols, relocations
+   Dynamic symbols can usually be found in the =dynsym= section. They
+   are also stored in the relocation table, accessible via =readelf -r=.
+** Global Offset Table, Procedure Linkage Table
+   Let's say that we have a program =main= that wants to access an
+   external variable =v= and call an external function =f=, stored in a
+   shared library. Since =v= and =f='s address are not known when the
+   program is linked, how does =main= find out their addresses?
+
+   That's where the *Global Offset Table* (GOT) comes to the rescue: the
+   loader populates the GOT with the run-time addresses of dynamic
+   symbols, at /fixed/ offsets. Thus =main= can compute =v= and =f= by
+   knowing:
+
+   - the fixed address where the GOT is mapped in its address space
+   - the fixed index of =v= or =f= relative to GOT
+
+   In particular for =f= things are a bit different. To compute the
+   address of =f=, programs use the *Procedure Linkage Table* (PLT),
+   which in turn cause an indirect jump to the GOT offset.
+
+   It often happens that symbols are subject to *lazy binding*: at
+   load-time the loader populates GOT with the next instruction, which
+   jumps to a trampoline in the loader, which in turn resolves the
+   symbol and writes the actual value into GOT. That's why =@plt=
+   entries look something along the lines of:
+
+   #+BEGIN_SRC
+   080483f0 <printf@plt>:
+   80483f0:       ff 25 0c b0 04 08       jmp    DWORD PTR ds:0x804b00c
+   80483f6:       68 00 00 00 00          push   0x0
+   80483fb:       e9 e0 ff ff ff          jmp    80483e0 <_init+0x28>
+   #+END_SRC
+
+   At the beginning, the location at =0x804b00c= will actually contain
+   the address =0x80483f6=, the address of the next instruction. Check
+   this out by using GDB.
+* Memory layout of a process
+  When a process starts running, we can find out various information
+  about it, one very important piece being the memory layout. Let's do
+  an example using a shell process:
+
+  #+BEGIN_SRC
+  $ ps -f
+  UID        PID  PPID  C STIME TTY          TIME CMD
+  spyked   20166 16543  0 12:41 pts/3    00:00:00 -zsh
+  spyked   28397 20166  0 15:55 pts/3    00:00:00 ps -f
+  $ cat /proc/20166/maps
+  557520700000-5575207bc000 r-xp 00000000 08:01 1177379                    /bin/zsh
+  5575209bb000-5575209bd000 r--p 000bb000 08:01 1177379                    /bin/zsh
+  5575209bd000-5575209c3000 rw-p 000bd000 08:01 1177379                    /bin/zsh
+  5575209c3000-5575209d7000 rw-p 00000000 00:00 0
+  55752261b000-557522779000 rw-p 00000000 00:00 0                          [heap]
+  7f485a5b8000-7f485a5c7000 r-xp 00000000 08:01 787250                     /usr/lib/x86_64-linux-gnu/zsh/5.2/zsh/computil.so
+  7f485a5c7000-7f485a7c7000 ---p 0000f000 08:01 787250                     /usr/lib/x86_64-linux-gnu/zsh/5.2/zsh/computil.so
+  7f485a7c7000-7f485a7c8000 r--p 0000f000 08:01 787250                     /usr/lib/x86_64-linux-gnu/zsh/5.2/zsh/computil.so
+  ... [many other libraries]
+  7f485c96b000-7f485c98e000 r-xp 00000000 08:01 1046591                    /lib/x86_64-linux-gnu/ld-2.24.so
+  7f485c9ca000-7f485cb63000 r--p 00000000 08:01 1704087                    /usr/lib/locale/locale-archive
+  7f485cb63000-7f485cb65000 rw-p 00000000 00:00 0
+  7f485cb7f000-7f485cb86000 r--s 00000000 08:01 1740737                    /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+  7f485cb86000-7f485cb8d000 rw-p 00000000 00:00 0
+  7f485cb8d000-7f485cb8e000 r--p 00022000 08:01 1046591                    /lib/x86_64-linux-gnu/ld-2.24.so
+  7f485cb8e000-7f485cb8f000 rw-p 00023000 08:01 1046591                    /lib/x86_64-linux-gnu/ld-2.24.so
+  7f485cb8f000-7f485cb90000 rw-p 00000000 00:00 0
+  7fffce505000-7fffce549000 rw-p 00000000 00:00 0                          [stack]
+  7fffce5cc000-7fffce5ce000 r--p 00000000 00:00 0                          [vvar]
+  7fffce5ce000-7fffce5d0000 r-xp 00000000 00:00 0                          [vdso]
+  ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+  #+END_SRC
+
+  What does this give us?
+
+  - We know the address where the heap, stack, code, etc. of our binary
+    are mapped by looking at permissions.
+  - We also know the same for library code.
+
+  This means that getting access to these resources helps us infer any
+  run-time information about the binary (including information protected
+  by ASLR!).
+* GDB, PEDA
+  These are already covered in the lab, won't go into them. The [[https://sourceware.org/gdb/current/onlinedocs/gdb/][GDB User
+  Manual]] is your friend.
+* Tasks
+** Task 1 [5p]
+   This was discussed in the first lecture, it's pretty
+   straightforward. Just use GDB/PEDA and go step by step through the
+   binary. Figure out the password from the comparisons.
+** Task 2 [5p]
+   This is similar to Task 1, only somewhat more complicated. The
+   comparison performed isn't straightforward at all, so either use a
+   pen and paper to figure it out, or look at other things to modify in
+   order to obtain execution.
+** Extra: PLT/GOT tutorial [2p]
