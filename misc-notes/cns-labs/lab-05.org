@@ -1,0 +1,155 @@
+#+TITLE: Computer and Network Security -- Lab 05
+#+SUBTITLE: The Stack. Buffer Management
+
+* Intro: attack vectors in C programs
+  In general programs can be attacked in many ways, the only limit being
+  your own imagination. :)
+
+  In the following labs we will focus mainly on *memory corruption
+  attacks*: performing memory accesses that the programmer didn't intend
+  to happen. This occurs because C is *memory unsafe*, i.e. no bounds
+  checking operations are performed when accessing a piece of memory,
+  e.g. by dereferencing a pointer. So the first step to a successful
+  attack in this CNS labs (and most of the following) will be to find a
+  corruptible buffer (or another variable).
+
+  Afterwards, we can do two things with adjacent memory locations:
+
+  - Read them :: information leak
+  - Write them :: arbitrary memory corruption, leading to at least
+       partial control over the program
+
+  For now let's focus on arbitrary memory corruption: there are specific
+  types of data we can write:
+
+  - Various sensitive data in memory, e.g. passwords, bitfield flags,
+    encryption keys, etc.
+  - Control-flow data: function pointers, return addresses, etc.
+
+  Let's further focus: if we overwrite control-flow data, this is
+  usually a good vector to obtain *arbitrary code execution*: this gives
+  us complete control over the program, so it's a very powerful attack.
+* The stack
+  There are three types of variables in C programs, each situated in one
+  of three places:
+
+  - Global variables :: are situated in =.data= =.rodata= and =.bss=
+  - Local variables :: are situated on the stack
+  - Dynamically allocated variables :: are situated on the heap
+
+  (Remember the memory layout from previous labs/lectures.)
+
+  In this lab we will focus on the stack. In fact the stack contains (on
+  x86-32 in particular) more than just local variables:
+
+  - Local variables (duh)
+  - Function parameters pushed by the caller
+  - Return addresses (free control-flow data!)
+
+  So one simple recipe to disaster is: find a local buffer and overflow
+  it until we get to the return address. Upon return, the control-flow
+  will be altered wherever we want. Pretty cool, huh?
+
+  As an exercise, try to use the tools of the trade (GDB, objdump) to
+  identify the stack layout of the process and what is at each address
+  on the stack. This will be /very/ useful in the tasks.
+* Tasks
+** 1. Assembly Function Calls [2p + 1p bonus]
+*** Task [2p]
+    Lab 02 redux: learn how to push/pop to/from the stack in
+    assembly. Pretty simple.
+*** Bonus [1p]
+    This is pretty simple. A stack push is 4 bytes (a double-word), so
+    just add to esp the number of double-words pushed to the stack
+    before the call instruction.
+** 2. Overflow a pointer [1p tutorial + 2p + 1p bonus + 2p bonus]
+*** Tutorial [1p]
+    Self-explanatory.
+*** Task [2p]
+    This is pretty straightforward if you've followed the
+    tutorial. Remember that addresses are little endian, so for example
+    =0x0804849b= (the address of =hidden_function= that I have) will
+    have to be outputted as "\x9b\x84\x04\x09". The challenge is in
+    finding the right offset within the input string.
+*** Bonus [1p]
+    Same as the task: find the right offset for the dumb value and
+    output the desired number.
+*** Bonus [2p]
+    This is a bit trickier, but not fundamentally so. What is the stack
+    layout of =helper_function=? After =f_ptr= we should have the old
+    value of EBP and then the return address, plus some potential
+    padding (careful about that!).
+
+    Don't worry about the program segfaulting afterwards; it does that
+    because the return addresses are completely borked.
+
+    My exploit looks like this:
+
+    #+BEGIN_SRC
+    perl -e 'print "ABCD"x 8 . "\x78\x56\x34\x12" . "\x9b\x84\x04\x08" . "ABCD" x 3 . "\xb4\x84\x04\x08";' | ./overflow_ptr
+    #+END_SRC
+** 3. Off-by-one Overflow [3p + 2p bonus]
+*** Task [3p]
+    This is seemingly tricky, but if you run the binary, you'll see it
+    asks for one number more than you've entered. This is our way into
+    overwriting =op_func= even if we ask for =MAX_SIZE= integers.
+
+    So far the exploit looks like this:
+
+    #+BEGIN_SRC perl
+    # Operation 1, 64 integers
+    print "1\n64\n";
+
+    # Print the 64 + 1 integers
+    print "42\n" x 64;
+    print "1094795585\n"; # 0x41414141
+    #+END_SRC
+
+    This will segfault at the expected address, cool! So we just need to
+    modify the address to =bad_func=.
+*** Bonus [2p]
+    This is simpler than it looks. Instead of jumping at the beginning
+    of =bad_func=, just jump at the place where it prints "Very bad".
+** 4. Overflow an Address [3p + 1p bonus + 1p bonus]
+*** Task [3p]
+    =get_user_data= is suspicious: why does fgets expect =2*NAME_SIZE=
+    characters?
+
+    Careful about padding, there might be some of it. But otherwise the
+    task is similar to the previous ones.
+*** Bonus [1p]
+    We've sort of got the idea of how to chain these kinds of function
+    calls during the previous task. To get a clearer idea of how this
+    works, thing of the normal program flow:
+
+    - =main= calls =get_user_data= (pushes ret addr on stack)
+    - =get_user_data= calls =fgets= (pushes ret addr on stack)
+    - =fgets= eventually returns (pops ret addr from the stack)
+    - =get_user_data= eventually returns (pops ret addr from the stack)
+
+    We curently have control over what's on the stack, so we altered the
+    control flow to:
+
+    - =main= -> =user_data=
+    - ...
+    - =user_data= returns to =bad_func=
+    - =bad_func= returns to ???
+
+    We can control the address where =bad_func= returns by changing its
+    own return address. To do this, let's think: where does =esp= point
+    when we enter =bad_func=? Well, it's just popped =bad_func='s
+    address from the stack, so the stack decreases by 4, so =esp=
+    *grows* by 4!
+
+    Therefore at the location following =bad_func='s address we can
+    place =really_bad_func='s address, which will be popped when
+    =bad_func= returns.
+*** Bonus [1p]
+    This is exactly the same as the previous bonus, only we need to find
+    an address where we can go so as to call =exit=. It seems =main=
+    calls =exit=, so that's our doorway to a clean program exit.
+
+    *Note*: careful about special ASCII characters! For example here the
+     call to =exit@plt= is at =0x804860a=; but =0x0a= is a newline
+     character, and it's going to be interpreted by =fgets=! So in this
+     case jumping at =0x8048608=, which is just before, is safe.

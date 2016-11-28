@@ -1,0 +1,29 @@
+#+TITLE: Computer and Network Security -- Lab 07
+#+SUBTITLE: Exploiting. Shellcodes (Part 2)
+
+* Tasks
+** 1. Passing shellcode through env [3p]
+   The task should be pretty straightforward. Use shellcraft to craft a
+   fast shellcode, GDB with =pattc=/=patto= to find the offset of the
+   target address, and =A=$(python -c 'print "A"*100000') ./getenv A= to
+   get the shellcode's approximate address.
+
+   Then, of course, profit.
+** 2. Multistage exploit [7p]
+*** a. Leak the buffer address [2p]
+    A good start is to play with the binary and read digits at random
+    offsets. The buffer's address should be found at offset 8, but a
+    certain way to find this out is to write something at that offset
+    before.
+
+    So here's a way to automate this:
+
+    #+BEGIN_SRC
+    for d in range(0, some offset)
+       write ref_message
+       read digit d
+       if d matches ref_message
+          store leaked address and break
+    #+END_SRC
+*** TODO b. Construct the first stage [2p]
+*** TODO c. Construct the second stage [3p]

@@ -1,0 +1,77 @@
+#+TITLE: Computer and Network Security -- Lab 06
+#+SUBTITLE: Exploiting. Shellcodes
+
+* Intro: binary exploitation
+  As discussed in the previous labs, at CNS we want to deal mainly with
+  the exploitation of *binary executable files*; actually, in most
+  cases, we want to obtain *control* over running programs, which in
+  practice translates to executing /arbitrary code/.
+
+  This is possible if the program contains a *vulnerability*, such as a
+  buffer that can be overflown. (As we will see later, this is not the
+  only type of vulnerability that can lead to arbitrary code execution,
+  but it's a very common one).
+
+  Once we found a vulnerability, we want to *exploit* it: inject an
+  input that allows us to execute a desired piece of code. There are
+  various types of exploits out there, but for now we will play with the
+  injection of *shellcodes* into binaries: small pieces of code that we
+  can hopefully execute.
+
+  Naïve shellcode injection is a very outdated technique, as on modern
+  computer architectures it is possible to mark data as non-executable
+  in hardware. However, data can still be made executable by the
+  attacker (through other intermediate steps), so that's why it's
+  important to study them!
+
+  So, to recap, in this lab and the upcoming, we will exercise:
+
+  - finding buffer overflow vulnerabilities in binaries,
+  - creating small pieces of code that are called shellcodes, and
+  - crafting special inputs (*payloads*) to obtain control of vulnerable
+    programs
+* Tutorial [2p]
+  Self-explanatory.
+* Tasks
+** 1. write [1p]
+   This should be easy if you've done the tutorial. Just make sure to
+   take a good look at the x86-32 syscall ABI and find out what the
+   syscall number for write is.
+
+   A few things to keep in mind:
+
+   - You need to pass a string to =write=; remember, you can push the
+     string on the stack!
+   - It's better to put the shellcode /after/ the return address,
+     because otherwise it might end up overwriting itself (by pushing on
+     the stack).
+   - Otherwise, be sure to make space on the esp again to push the
+     string in the correct place.
+   - Use gdb to make sure you're jumping at the correct shellcode!
+** 2. execve [3p]
+   Same as previous, with a few addenda:
+
+   - Careful about how you build argv. The =ecx= register should contain
+     a pointer to an /array of pointers/; the first pointer in that
+     array points to "/bin/sh" (or something of the likes) and the
+     second to NULL.
+   - =echo exploit | ./vuln= closes =./vuln='s stdin after the exploit
+     is echoed, so make sure to keep the pipe open (e.g. by doing =cat
+     bla -=) after injection.
+** 3. execve with no zeros [2p]
+   Same as previous, with a few mentions:
+
+   - Use =xor= to nullify registers, mov to =al= (instead of =eax=) to
+     avoid zeroes in immedate operands.
+   - This time putting the shellcode after the return address doesn't
+     work, because we're overwriting =argv[0]= (par example). So we need
+     to do a =sub esp, 68= at the beginning of the shellcode.
+
+   All good.
+** 4. Ending with style: pwntools [2p]
+   Just repeat 2, but with pwntools.
+
+   - Careful that the exercise sets a higher offset and expects you to
+     put at least 14 NOPs in the payload.
+   - Play with =shellcraft=. All the work you had to do to generate
+     shellcodes is now automated, which is pretty neat!

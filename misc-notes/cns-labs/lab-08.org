@@ -1,0 +1,81 @@
+#+TITLE: Computer and Network Security -- Lab 08
+#+SUBTITLE: Exploit Protection Mechanisms
+
+* Exploit protection mechanisms
+** Code integrity (DEP/W^X)
+   Code integrity comes from two fundamental principles:
+
+   - non-writable code data :: code cannot be rewriten arbitrarily
+   - non-executable non-code data :: non-code data cannot be executed
+        arbitrarily
+
+   This protection is ensured at multiple levels: hardware (memory
+   protections), OS (W^X policy), compiler (segment permissions).
+
+   Tying this to previous labs, code integrity will at least prevent
+   shellcodes from being executed. Bypass methods exist (e.g. code reuse
+   through return-oriented programming), we will study them in the
+   upcoming labs.
+** ASLR
+   Address Space Layout Randomization (ASLR) tries to *remove*
+   addressing information from the attacker by randomizing portions of
+   the program (stack, code, data, etc.). Thus even if the attacker
+   finds a memory corruption vector for exploitation, it won't know
+   where to divert control-flow.
+
+   ASLR does not prevent explicit information leaks, e.g. resulted from
+   reading addresses in variables. On 64 bits, this is the main method
+   to bypass it. On 32 bits only a limited portion of the address space
+   is randomized, so brute-force can be quite easily employed.
+** Stack canaries
+   Stack canaries are somewhat similar to ASLR, but they are supposed to
+   protect only against *buffer overflows*. The principle is: place a
+   random value (*canary value*) on the stack, between the return
+   address and potentially unsafe buffers, and keep a reference
+   somewhere safe. Before dereferencing the return address, check the
+   canary value's integrity. If it's different than the reference value,
+   then most likely a buffer has occured.
+
+   Stack canaries are a very weak form of return-based control-flow
+   integrity.
+* Tutorials [3p]
+** T1. GCC stack protector [1p]
+** T2. Recap: injecting the shellcode using environment variables [2p]
+* Tasks [7p + 4p bonus]
+** 1. Brute-force ASLR [3p]
+   The task's idea is pretty simple and obvious:
+
+   1. Look at the tips to find out which bits of the address are
+      randomized
+   2. Construct a huge shellcode (with a huge NOP sled) and place it in
+      an environment variable
+   3. In a loop, pick a tentative attack return address:
+      a. Pick a random address based on the randomized bits
+      b. Construct the buffer overflow payload
+      c. Try to exploit the binary
+** 2. Stackbleed: infoleak + ASLR bypass [4p]
+   If we're careful about the way we craft the input (exactly
+   =BUFFER_SIZE=) bytes, we can leak the environment
+   variable. Fortunately there are two reads done, so we can use the
+   second read to perform the actual buffer overflow.
+
+   We need to be careful about how we send input to the program via
+   pwntools, and how we process input from the program. But this is very
+   easy to automate.
+** 3. Extra: infoleak + stack canary bypass [2p]
+   This is very similar to the previous task, only we're now leaking the
+   canary value. However, we're assuming that the canary has the least
+   significant byte set to =NUL= (0x00), so we overwrite that and leak
+   what's left of the canary value.
+
+   This isn't 100% reliable (there might be other =NUL= bytes in the
+   canary value), but it /should/ work in principle. We should be able
+   to overwrite the canary with the expected value and then overwrite
+   the return address without causing a stack smash violation.
+** 4. Extra: infoleak + stack canary + ASLR bypass [2p]
+   This combines 1 and 3. We will:
+
+   - Brute-force ASLR
+   - Leak the stack canary and overwrite it with the leaked value
+
+   Could we also leak the stack's address? Why? Why not? Discuss.
