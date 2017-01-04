@@ -1,0 +1,135 @@
+#+TITLE: Computer and Network Security -- Lab 09
+#+SUBTITLE: Strings
+
+* Lab summary
+  C strings are arrays of characters with a =NUL= terminator, i.e. the
+  last element of the array is always =\0=. Although a character
+  constant has no distinction from any other C integer, characters are
+  usually represented using the =char= type, which is represented on one
+  byte.
+
+  We will deal with two fundamental problems when discussing strings:
+  *string management* and *format string attacks*.
+** String management
+   The string management problem comes from the fact that all the
+   string/memory manipulation library functions, e.g. =strcpy=,
+   =strncpy=, =strlcpy=, =strtok=, etc. are not secure by themselves and
+   require extra bookkeeping. Some of them, such as =gets= are provably
+   insecure and their use must be avoided at all costs (we've seen some
+   usage examples in the previous labs so far).
+
+   In general, the documentation to these functions needs to be read
+   very carefully. For example =strncpy= doesn't append a =NUL= byte to
+   the end of the string, so this needs to be checked. Additionally, if
+   the size of the string isn't checked beforehand, the string can be
+   truncated.
+
+   =gets=-type functions are weird: they don't stop on =NUL= bytes, but
+   only on =EOF= and newlines. =getc= returns an =int= instead of a
+   =char=, in order to check between a =EOF= and the character =-1=.
+
+   So remember: pay extra attention on how string buffer management is
+   done. If you're the attacker, keep an eye for those, they're a mine
+   of gold.
+** Format string attacks
+   How do =printf= format strings work? Take for example:
+
+   #+BEGIN_SRC C
+   printf("%s", my_string);
+   #+END_SRC
+
+   =printf= is a variadic function, so (in particular on x86-32) it
+   pushes on the stack however many bytes are given as parameters. Then
+   it accesses them on the stack when parsing the first parameter (the
+   *format string*).
+
+   So what happens if we say:
+
+   #+BEGIN_SRC C
+   printf("%s %d", my_string);
+   #+END_SRC
+
+   This will compile /without any errors/. What will happen is that,
+   when parsing the =%d= format specifier, =printf= will use the next
+   element (after =my_string=) on the stack, so it will actually leak
+   data!
+
+   But wait, there's more! The =%n= specifier can be used to *write*
+   (the number of bytes written so far) to an address given as a
+   parameter. So we can try to deterministically reach a cell (e.g. the
+   return address) and write it to some value.
+
+   So now comes the question: /how can we exploit this/? Well, if the
+   vulnerable program passes a variable (instead of a constant) as a
+   format string, then the attacker might be able to obtain a pretty
+   good grip on the application just by using this.
+* Tasks
+** 1. Basic info leak (tutorial) [1p]
+   Self-explanatory.
+** 2. Recap: String Shellcode [2.5p]
+   This is pretty easy, as we discussed in previous labs. We know the
+   address of =g_buffer=, so we know where we want to jump. We also know
+   that =g_buffer= is copied into =l_buffer=, which will lead to the
+   return address of =get_num_alpha= to be modified.
+
+   We can place the following into the buffer:
+
+   - a shellcode
+   - padding until the return address offset
+   - the return address (shellcode address in =g_buffer=)
+
+   Since the shellcode might not fit into =l_buffer= (we're not jumping
+   to =l_buffer=, but we still need enough space for the return
+   address), we can also put:
+
+   - padding until the return address offset
+   - the return address (shellcode address: padding offset + 4)
+   - the shellcode
+** 3. Information Leak [3.5p]
+   As explained in the lab, the program leaks some info off the stack,
+   namely the =ebp= address of =main=.
+
+   We see that =main= calls =my_main=, which means that, assuming that
+   =main= hasn't pushed extra stuff on the stack, then the return
+   address of =my_main= is at =ebp_main - 4=. So this is pretty easy to
+   solve.
+
+   Finding the offset of the leak is also easy. If we look with xxd (as
+   show in the lab), we notice that the printed info has a ="hello "=
+   followed by our 32 ="A"=s, followed by the leaked info. So the final
+   offset is 38.
+
+   No we just need to set the pointer in the memory write function to
+   =ret_address_addres= and the value to =evil_func_address= (see
+   =exploit.py=).
+** 4. Format string attacks, example 3 [1p]
+   Self explanatory.
+** 5. Basic format string attack [2p]
+   Let's first look at =basic_format_string.c=. It first reads =buffer=
+   (max. 16 characters) and then =fmt_buffer= (max. 32 characters).
+
+   Since both =buffer= and =fmt_buffer= are allocated on the stack, we
+   can leak their addresses. In fact we can *use* them to write to
+   addresses on the stack using the =%n= format specifier.
+
+   What we want to do is:
+
+   - write the (packed) addresss of =v= in =buffer= (using the first
+     read)
+   - use =%n= to write an arbitrary value (in our case 100) to this
+     address, by making use of format string magic
+
+   The first part of the task documents this pretty well. We can easily
+   determine where =v= is using =nm=. Then we need to craft a format
+   string that leaks it (see the tutorial).
+
+   The most tricky part is making =printf= output exactly 100 characters
+   before =%n= is parsed. We can achieve this by tweaking the number of
+   characters outputted by e.g. a =%llx= format specifier, e.g. =%20llx=
+   to make this print the number of characters we need.
+
+   There is a bit of trial and error involved in tweaking the exploit,
+   but, =echo -n ... | wc -c= is your friend here.
+** TODO 6. Extra: Full format string attack [3p]
+   This is more or less self-explanatory, but I want to do my own
+   write-up at some point.

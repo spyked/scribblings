@@ -1,0 +1,53 @@
+#+TITLE: Computer and Network Security -- Lab 11
+#+SUBTITLE: Return Oriented Programming (Part 2)
+
+* Recap: why is ROP useful? and forth: practical ROP
+  From the previous lab we remember that the purpose of ROP is to bypass
+  protection mechanisms (W^X, ASLR if possible) by *reusing existing
+  code*. We can reuse:
+
+  - /entire functions/; e.g. =read= to read data, =printf= or =puts= to
+    leak info, =mprotect= to bypass paging protections
+  - small pieces of code which we called /gadgets/, that help us in
+    small (yet important!) matters such as cleaning up the stack,
+    setting function parameters, and so on; the most important part here
+    is that they alter the control-flow to addresses which we can
+    control
+
+  So gadgets are used for the purpose of making code reuse
+  *practical*. We've seen in the previous lab that we can build pretty
+  elaborate attacks using them, and we can implicitly leak data by
+  reusing register state available at run-time.
+
+  In this session we'll discuss two additional ROP techniques to make
+  code reuse practical:
+
+  - return-to-vuln :: once we have triggered the vulnerability, we can
+       re-trigger it using ROP; this helps e.g. to call =read= multiple
+       times when our buffer is small, thus modifying the system state
+       in small steps.
+  - stack pivoting :: certain gadgets (e.g. =leave; ret=) allow us to
+       control the value of =esp=; this is useful because this way we
+       can set up a new stack with arbitrary contents and use that for
+       further ROP.
+* Tasks
+** 1. Return to main [4p]
+*** Tutorial: return address offset [1p]
+    Self-explanatory.
+*** Tutorial: opening the flag file and returning to main [1p]
+    Self-explanatory.
+*** Reading and printing the flag [2p]
+    This is easy: we just return to =main= (or =play=) three times, each
+    time for each function we call. To make sure we fit the payload into
+    the 64-byte buffer, we should print the payload's length, just to
+    make sure.
+** 2. Stack pivoting [6p]
+*** Tutorial: finding a place to pivot [1p]
+    Self-explanatory.
+*** Tutorial: first stage payload [2p]
+    Self-explanatory. The new part here is that we set =old ebp= to a
+    well-known deterministic value that we will use as =esp= in the
+    exploit.
+*** Second stage payload [3p]
+    This is also pretty easy. Once we have the stack set in place, we
+    simply chain everything as before.

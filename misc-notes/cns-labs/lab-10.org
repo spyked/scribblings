@@ -1,0 +1,72 @@
+#+TITLE: Computer and Network Security -- Lab 10
+#+SUBTITLE: Return Oriented Programming (Part 1)
+
+* Why attackers need ROP
+  As we've seen in previous labs, system designers have put in place
+  various protection mechanisms:
+
+  - ASLR :: hides stack location information from the attackers
+  - W^X/DEP :: uses hardware protection mechanisms to make the various
+       data areas (e.g. the stack) non-executable, and the code read-only
+  - Stack canaries :: partially enforces the integrity of certain
+       sensitive variables on the stack, by interposing a so-called
+       "canary value" between them and buffers
+
+  It's important for us to keep in mind that these mechanisms are
+  imperfect, i.e. we can bypass them. For this lab we will assume the
+  following setup:
+
+  - ASLR is disabled
+  - W^X is enabled
+  - Stack canaries are disabled
+
+  The lab shows how we can check these in a binary (or system-wide, in
+  ASLR's case).
+
+  Bypassing W^X is possible by reusing existing code. For example we can
+  control an address where stuff is read by calling the =read= C library
+  function; we can launch a shell by using =system=; we can set page
+  permissions through =mprotect=. The question is how to chain these
+  functions.
+
+  One of the most general forms of code reusable in existence is what is
+  today called *Return Oriented Programming* (ROP). The trick comes from
+  using =ret= instructions (which normally "return" from functions) as
+  *forward* flows (e.g. similarly to a jump), which is very easy once we
+  gain control of the stack. The pieces of code used in ROP are called
+  *gadgets*: they accomplish small tasks such as doing stack clean-up
+  (popping from the stack) and then transferring control-flow to another
+  destination that is controllable by the attacker.
+* Tasks
+** 1. ROP Gadgets (tutorial) [1p]
+   Self-explanatory.
+** 2. Return-to-libc -- bypass NX/DEP (tutorial) [2p]
+   Self-explanatory.
+** 3. ROP: Find the buffer [3.5p]
+*** a. ROP Gadget to return to the buffer [2.5p]
+    This task shows that we can implicitly leak info such as a buffer's
+    address by reusing registers which contain this data. For example,
+    when =ret= is called from =vuln=, =eax= contains the buffer's
+    address, which is very convenient for us, because we can jump to a
+    gadget such as =jmp eax= or =push eax; ret= or somesuch. That's all.
+*** b. ROP Debugging [1p]
+    This just illustrates that NX is enabled, so the stack is not
+    executable.
+** 4. ROP: Functions chain [3.5p]
+   This is an exercise in playing with what we've learned about stack
+   clean-up and chaining functions. We need to find a =pop; ret= gadget
+   to do clean-up after =call_1= and a =pop; pop; ret= gadget to
+   clean-up after =call_2= (which gets two parameters).
+** 5. Bonus ROP: Libc Functions chain (practical ROP) [3p]
+   This is trickier, but the skeleton should help. What we want to do
+   is:
+
+   - call =read= in order to read the shellcode in a bigger global
+     buffer
+   - call =mprotect= on the global buffer to make it executable
+   - jump to the buffer
+
+   Having the skeleton, this reduces to finding the address of =gbuf=,
+   =read=, =mprotect= (we assume ASLR is disabled, so we can find the
+   libc base address from GDB) and crafting their parameters so that we
+   overwrite our stuff.
