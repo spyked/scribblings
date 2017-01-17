@@ -1,0 +1,138 @@
+#+TITLE: Computer and Network Security -- Lab 12
+#+SUBTITLE: Integers
+
+* Short intro on integers
+  C has a bunch of integer types: =int=, =short=, =char=, etc. on which
+  we can do addition, subtraction, division and so on. Integer types are
+  characterized by the following properties:
+
+  - size :: This is what distinguishes =int= from =char= and so
+       on. =sizeof(int_type)= is architecture-dependent: for example on
+       x86, =long= is represented on 4 bytes on 32-bit programs and on 8
+       bytes on 64-bit programs. The C standard gives few guarantess
+       regarding this.
+  - signedness :: For example on x86-32, an =unsigned int= has exactly 4
+       bytes (32 bits), thus it can represent values from =0= to =2^32 -
+       1=. A =signed int= uses its most significant bit as a *sign bit*,
+       so it can represent values from =-2^31= to =2^31 - 1=.
+  - representation :: On x86 architectures, (signed) integers are
+       represented using *two's complement*: arithmetic negation is done
+       by doing logic negation and adding one. For example a =signed
+       char= =42= is represented as =0x2a=. The negation of =0x2a= is
+       =0xd5=, to which we add one; so the representation of =-42= is
+       =0xd6= (equivalent to =256 - 42=).
+
+  Integers can be *casted* (either explicitly or implicitly) from one
+  type to another. We won't go into the details of implicit casts, but
+  there's two things that can happen:
+
+  - A larger type is casted to a smaller type (e.g. =long= to =short=),
+    in which case the value is *truncated*.
+  - A smaller type is casted to a larger type, in which case the value,
+    if signed, is sign-extended, i.e. the sign bit is copied on the
+    newly acquired bits (so the value is preserved under modular two's
+    complement arithmetic).
+
+  Note also that the signedness of a value has very little meaning for
+  the underlying architecture. (For example on x86) registers simply
+  hold values, and the sign bit is only used for example on signed
+  conditional jumps. This entails that casts from =signed= to =unsigned=
+  or vice-versa do not change the actual value (only type-level
+  information held by the compiler).
+* Integer vulnerabilities
+  Starting from the basic info above, the following things may occur
+  which break a program's semantics:
+
+  - The size is limited, so adding or subtracting large numbers may
+    result in an *integer overflow*. For example two =unsigned char=
+    values, 231 and 72, when added, will be wrapped around, modulo 256,
+    resulting in 47.
+  - Truncation may alter the value of a number in *undesired ways*. For
+    example a =short= =0x4242=, when casted to =char=, will be truncated
+    to =0x42=.
+  - Casts from =signed= to =unsigned= or vice-versa may cause some
+    operations (comparisons and indexing, in general) to behave in
+    *undesired ways*. For example casting a =signed char= =-3= to an
+    =unsigned char=, its new value will be =253=.
+
+  Additionally, integer division may generate exceptions in the
+  following cases:
+
+  - when the divisor is =0=;
+  - when the resulting value cannot be represented on a given register
+    size: for example dividing a large 16-bit value by 2 and storing it
+    in an 8-bit register; this is a hardware quirk and it's usually
+    handled by the compiler;
+  - when dividing =INT_MIN / -1=; this is because =INT_MIN = -INT_MAX -
+    1=, so =(-INT_MAX - 1) / -1= would yield =INT_MAX + 1=, which is not
+    representable; this is the same quirk as above, only it's /not/
+    handled by the compiler.
+* Tasks
+** 1. Integer overflow [2.5p]
+*** a. Part 1: find inputs [1p]
+    The first part is simple: we add two positive numbers that are large
+    enough to cause an integer overflow, e.g. 127 and 65.
+*** b. Part 2: fix program [1.5p]
+    The second part is a bit tricky. As explained in the [[https://www.securecoding.cert.org/confluence/display/c/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow][CERT Secure
+    Coding Standard]], we need to add/subtract without causing *actual*
+    overflows. So for example if =y= is positive, then we first subtract
+    it from =CHAR_MAX= and compare with =x=. If =x= is bigger than that,
+    then we expect addition to overflow. This goes similarly for
+    negative numbers.
+** 2. Signed/unsigned comparison [2.5p]
+*** a. Part 1 [1p]
+    The caveat here is that =x2= is an unsigned bigger than
+    =INT_MAX=. If we cast everything to =unsigned=, we need to find a
+    number between =(unsigned int)INT_MAX= and =x2=. Back in terms of
+    =signed int=, that value will most definitely be a negative
+    number. For example =-2147483648= fits here.
+*** b. Part 2 [1.5p]
+    There is more than one way to solve this. One possibility would be
+    to remove the second comparison in =if (x1 < 0 && x1 < x2)=, since
+    theoretically it should always be false.
+
+    Another approach could be to *cast* =x1= and =x2= to =long long=,
+    which will sign-extend =x2= and everything will be okay.
+** 3. Smashthestack level7 [3p]
+   The vulnerability is explained in the lab text: we're dealing with a
+   potential overflow, resulting from the multiplication with
+   =sizeof(int)=. By multiplying with 4, we can cause a large *negative*
+   number to *oveflow* into a small *positive* number. This is
+   relatively easy to compute in modular arithmetic, using Euclid's
+   algorithm... Or the small programs provided in the archive and the
+   lab text.
+** 4. Smashthestack level2 [2p]
+   This has been explained a couple of times already. The program checks
+   for a potential division by zero, but it doesn't check for a
+   =INT_MIN/-1=.
+** 5. Bonus: Smashthestack level2_alt [2p]
+   This exceeds the integers lab (which is why it's an extra), but it's
+   fun nonetheless. So here's the problem.
+
+   The program does a =strtod= on =argv[1]=, converting the *floating
+   point* input to a =double= (64-bits). But then the input is
+   implicitly casted to =float= (40 bits). *This sucks*, because we are
+   giving a /decimal/ number as an input, so there is some potential
+   precision loss occuring when converting to /binary/ floating point
+   ([[https://en.wikipedia.org/wiki/IEEE_floating_point][IEEE 754]]). There is also some additional precision loss when the
+   number is truncated upon conversion from =double= to =float=.
+
+   In particular, for our number, =3.141593=, there is no /decimal/
+   representation that, using =strtod=, can be converted into a =float=
+   representation that can be *precisely* equal to the =answer=. In fact
+   this is why it is *not recommended* to compare floating-point numbers
+   to precise equality, because precise equality is ill-defined under
+   floating-point (due to errors, numeric stability, etc.). Were we
+   using =strtof=, the program might have potentially worked, but the
+   truncation really fucks up our program.
+
+   The problem is however *a riddle*: notice that the program doesn't
+   *explicitly* use equality to compare our input with =answer=. It aims
+   to mislead us that way (e.g. to try and do a search on the inputs to
+   trigger the =else= branch), when in fact there is a floating-point
+   value that is neither /higher/ nor /lower/ than =answer=, *nor is it
+   equal* to it. That value is =NaN=.
+
+   Had we read our floating-point arithmetic manual, we would have known
+   this. But I heard the [[https://en.wikipedia.org/wiki/Pentium_FDIV_bug][Intel engineers]] struggle with that one too, so
+   we're okay.

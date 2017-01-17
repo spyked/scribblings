@@ -1,0 +1,19 @@
+#+TITLE: Computer and Network Security -- Lab 13
+#+SUBTITLE: Advanced Binary Analysis
+
+(This lab was made from scratch by yours truly, so I don't really feel
+like adding anything to it in terms of explanations. Probably next
+year...)
+
+Symbolic execution high-level: it explores *execution paths* in a
+program (or a representation of it) and it tries to find the
+*conditions* under which a given *state* is *reachable*. For example, it
+tries to answer the question "what inputs lead to a buffer overflow in
+this program?"
+
+* Tutorial: Symbolic Execution using angr [2p]
+* Tasks
+** 1. baby-re [3p]
+** 2. hash [5p]
+*** a. Solve by hand [2p]
+*** b. Solve using angr [3p]
