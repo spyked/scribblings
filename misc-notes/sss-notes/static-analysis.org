@@ -1,0 +1,97 @@
+#+TITLE: Security Summer School -- Static Analysis
+#+SUBTITLE: Notes and thoughts
+
+* Static analysis definition, the airplane view
+  # [Slide 1]
+  First, we need to know: what does analysis mean? What does static
+  mean?
+
+  Suppose we are given a file, =gigi.txt=. What do we do with it?
+
+  Suppose we open it (what does "open" mean?). The file contains
+  garbage. What next?
+
+  We want to find out what *format* the file is and reverse *the
+  content*; more precisely:
+
+  - what kind of data it encodes, and
+  - what is the actual content and its meaning
+
+  This is what *analysis* entails: learning what some piece of data
+  means. Analysis is in general a /hard/ issue.
+
+  Back to formats, there are various data formats out there: images,
+  documents, audio, video, and /many/ others.
+
+  So far we're interested in studying *executable* file formats and
+  understanding *programs*. Remember, code is data too!
+
+  So what do we do with =gigi.txt= next? We can for example run =file=
+  on it. This is a form of *static* analysis (as opposed to dynamic
+  analysis): we look at the static abstraction (the data) as opposed to
+  the dynamic abstraction (e.g. a running program -- a process -- or a
+  video file currently running).
+
+  # Note
+  Why do we do static analysis instead of dynamic analysis? Firstly,
+  because we can't trust arbitrary binaries: we need to know, or at
+  least it's good to know as much as possible about them before running
+  them.
+* Executable files, how do they work?
+  # [Slide 2]
+  Remember: executable files are obtained from program source files
+  (e.g. C). How are they obtained?
+
+  Remember the phases of building an executable:
+
+  - Compilation :: transforms the high-level code (C) to /assembly/; the
+       result is a low-level source file that contains the machine code,
+       but in a format that's easy to read by a human.
+  - Assembly :: transforms the assembly file into /machine code/; the
+       machine code is a format that is directly interpretable by the
+       CPU.
+
+  # [Slide 3]
+  So how do we analyze executables? *Step 1*: disassemble; this should
+  be relatively easy to do if the file contains extra metadata (program
+  entry point, symbols info); otherwise it can get hard. *Step 2*:
+  decompile; by detecting the patterns used by the compiler to generate
+  code, one can reverse the assembly back into e.g. C; in general, this
+  is very hard to do, but some very expensive tools can do it (IDA).
+* Disassembly algorithms
+  # [Slides 5-8]
+  We're gonna encounter two approaches to disassembly:
+
+  - Linear sweep :: (objdump) start from the beginning of the section;
+       disassemble each instruction linearly.
+  - Recursive traversal :: (IDA) start disassembling linearly from
+       program entry point; on branch instructions, disassemble the
+       target recursively.
+* Limitations of disassembly
+  # [Still slides 5-8]
+  First, we can easily see that disassembly algorithms have their
+  limitations: linear sweep doesn't handle unaligned instructions well
+  (in the absence of metadata, things can go awfully wrong); recursive
+  traversal doesn't work for indirect branches (what do we do when we
+  encounter =jmp eax=?).
+
+  Then, instruction encoding can cause problems. x86 instructions have
+  variable sizes, can overlap, and can have different meanings depending
+  on where we start disassembly. Don't be surprised if the program does
+  completely something else than what you've seen in the disassembly
+  dump.
+* What next?
+  # [Slide 9]
+  When static analysis fails, we need to combine it with *dynamic*
+  analysis. For executables this should be rather simple (or... should
+  it?): just run the file, in a debugger if possible.
+
+  # [Slides 10, 11]
+  For example, GDB allows us to look at disassembly dumps that are
+  relative to the currently executing instructions, which is really
+  useful.
+
+  # [Slides 12, 13]
+  What's more, we can inspect program state (registers, the stack, the
+  heap and more!). We'll look into this in more detail in the next
+  session.

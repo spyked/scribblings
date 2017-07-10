@@ -1,0 +1,166 @@
+#+TITLE: Security Summer School -- Information Leaks
+#+SUBTITLE: Stack canaries and format strings. Notes and thoughts
+
+* Discussion on defense mechanisms (and infoleaks)
+  # [Slide 1]
+  High-level problem: a. what defense mechanisms did we discuss so far?
+  and b. how do they work?
+
+  - NX (DEP, W xor X, etc.)
+  - ASLR
+  - Stack canary (we'll look at that today)
+
+  Two of the aforementioned mechanisms (and others?) work by *hiding*
+  data, e.g.: ASLR puts pieces of the program (stack, global data, code)
+  at random addresses so that the attacker cannot find out where they
+  are.
+
+  But hidden data is actually not completely hidden, e.g. stack
+  addresses are held in the stack pointer, pointers to global variables
+  are held in the global offset table, etc. So if the attacker has
+  access to to this data, it can use it as a stepping stone towards
+  bypassing the defense mechanism. We call this type of attack an
+  *information leak*.
+
+  # [Slide 2]
+  We'll discuss two subjects today:
+
+  - stack canaries :: and bypassing them through information leaks, and
+  - format string attacks :: and using them for information leaks /and/
+       memory corruption.
+* Stack canaries
+** Stack canaries: how do they work?
+   # [Slide 3]
+   Let's say that we are calling a function with local variables (one of
+   which is a buffer). Let's start from the following image of the
+   stack:
+
+   #+BEGIN_EXPORT ascii
+      ------------ 0
+      |          |
+    ^ |          | |
+    | |----------| |
+    | |  Locals  | | O
+    | |----------| | v
+  S | |          | | e
+  t | |----------| | r
+  a | |  Old FP  | | f
+  c | |----------| | l
+  k | |          | | o
+    | |----------| | w
+    | | Ret addr | |
+    | |----------| v
+      |          |
+      ------------ 0xFFFF...
+   #+END_EXPORT
+
+   Stack canaries are a simple solution for *detecting* buffer
+   overflows. For example, assuming the attacker wants to corrupt the
+   return address through a buffer overflow, we can use the following
+   scheme:
+
+   - push a special value (i.e. a *canary value*) /after/ the return
+     address;
+   - before returning from the function, check the special value;
+   - if it's the expected value, then we assume no buffer overflow
+     occured
+   - else, hell freezes over.
+
+   Notice the assumptions:
+
+   - We assume that the attacker doesn't know the special value
+   - We assume that when a memory corruption occurs, the special value
+     will be overwritten to something else. :)
+** Stack canaries: implementations
+   # [Slide 4]
+   There's more than one way to implement canaries.
+
+   - Most times we start from a random value.
+   - What we can do (and what most implementations do) is add a
+     terminator byte (=\x00=) to limit read access for functions such as
+     =puts=.
+   - What some implementations do is (also) apply an algorithm such as
+     XOR (e.g. between the return address and the random value).
+
+   # [Slides 5, 6, 7]
+   There are other practical implementation details, such as: where do
+   we put the canary value? Some alternatives (keeping the stack picture
+   above in mind) include:
+
+   - /After/ the return address;
+   - /After/ the frame pointer;
+   - Split the local variables into buffers and non-buffers and place
+     the value immediately /before/ the buffers. Then push the buffers,
+     then other locals, which prevents locals being overwritten.
+
+   StackShield is somewhat special: it uses a separate *shadow stack*
+   for return addresses and checks return addresses against values on
+   the shadow stack.
+** Stack canaries: limitations
+   # [Slide 8]
+   Stack canaries can be bypassed. :)
+
+   If we have a memory corruption vector other than a buffer overflow
+   *and* we can find out the stack address (or offset) of the return
+   address, we can overwrite it without touching the canary value.
+
+   If we can first leak the canary value, we can then overwrite it as
+   part of the payload, causing a false positive.
+* Format string attacks
+** Format string attacks: the basics
+   # [Slides 9-12]
+   =printf= spec:
+
+   #+BEGIN_SRC C
+   printf(fstr, args...);
+   #+END_SRC
+
+   What happens if the user can control =fstr=? For example:
+
+   #+BEGIN_SRC C
+   printf("%x %x", 2, 3);
+   printf("%x %x", 2);
+   #+END_SRC
+
+   Where is =2= placed? Where is =3= placed? *Remember*: on x86-32,
+   function parameters are pushed on the stack. (Note: on most
+   architectures, printf will /eventually/ have parameters pushed on the
+   stack, due to variadic parameters not fitting into registers; see for
+   example the [[https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI][System V amd64 ABI]].)
+
+   So the second call to =printf= will actually print arbitrary values
+   on the stack. We can easily use this for information leak attacks!
+
+   # [Slide 13]
+   Example stack layout.
+
+   # [Slide 14]
+   Example call to =printf=. Could put a small demo here.
+** Format string attacks for infoleaks
+   # [Slide 15]
+   If we control the format string, we can extend this to leaking
+   arbitrary data, either through =%s=, or by printing values of various
+   sizes (e.g. ints through =%x=). Here =printf= gives us a language for
+   controlling what we want to display, as you will see in the tutorial.
+** Format string attacks for corruption
+   # [Slide 16]
+   Moreover, we can use =printf= to write data! The =%n= specifier
+   allows us to write at a given address the *number of bytes* that were
+   displayed so far by =printf=.
+
+   # [Slide 17]
+   =%n= writes (in our case) 4-byte values. But if we write them in the
+   reverse little-endian order, we can obtain a value. Careful though,
+   this will overwrite other (potentially important) data.
+** Conclusion on format string attacks
+   # [Slide 18]
+   Long story short: don't allow arbitrary user input! In our case,
+   don't allow variable format strings! In general, be careful about the
+   input you allow and sanitize it before using it.
+
+   Similar attacks:
+
+   - SQL injection: allows attackers to inject SQL code (e.g. in web
+     input fields)
+   - XSS injection: allows attackers to inject JavaScript code into
+     pages viewed by arbitrary users (e.g. data posted into a forum).
