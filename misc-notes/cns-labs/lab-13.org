@@ -13,6 +13,7 @@ this program?"
 
 * Tutorial: Symbolic Execution using angr [2p]
 * Tasks
+** 0. Feedback [2p]
 ** 1. baby-re [3p]
 ** 2. hash [5p]
 *** a. Solve by hand [2p]
