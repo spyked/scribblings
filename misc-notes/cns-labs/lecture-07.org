@@ -1,0 +1,174 @@
+#+TITLE: Computer and Network Security -- Lecture 07
+#+SUBTITLE: Exploiting. Shellcodes (Part 2)
+
+* Intro and recap on shellcodes and exploiting
+  We've seen that programs are often vulnerable to memory
+  corruption. What does this mean?
+
+  Say we have a program that (statically or dynamically) allocates a
+  buffer. Then it reads (e.g. =read=, =memcpy=) into that buffer. If the
+  buffer size isn't checked, then that memory read can be used to
+  corrupt other variables in memory.
+
+  That's all nice and well, but so what? How does that help the
+  attacker?
+
+  We saw that vulnerable buffers are often *co-located* with sensitive
+  data. Typical example: we can overflow a buffer to overwrite a return
+  address on the stack, thus obtaining control over the program.
+
+  Idea: place a small piece of code (a *shellcode*) in the buffer and
+  set the value of the return address to the address of the buffer. If
+  we can =execve= a shell, then we obtain arbitrary control. If the
+  program is privileged, then we obtain arbitrary control *over the
+  system*.
+
+  We saw that shellcodes are problematic. Why?
+
+  a. They need to be *position-independent*
+  b. They need to be *small enough* to fit into the buffer
+  c. They need to be in the *expected format* of the interpreter
+     (e.g. =read=).
+
+  In this session we'll explore constraints imposed on shellcodes and
+  how to make our attacks abide to what the program wants (and still
+  succeed).
+* Placing Data in Shellcodes
+  Say we want to call =execve("/bin/sh", ...)=. How do we achieve that?
+
+  The problem is that we need to pass the string "/bin/sh" somehow to
+  the call.
+
+  We've seen in the previous session that we can push the string on the
+  stack, then use that as a pointer.
+
+  Example on the whiteboard.
+* Placing Data in Shellcodes (2)
+  Another we can do this is by inserting the string into the shellcode
+  ad-literam, and abusing the =call= instruction to push a pointer to
+  the string on the stack, as shown in the example.
+
+  Why does this work?
+
+  a. Remember, =call= pushes the return address on the stack. In our
+     case, the "return address" doesn't contain code, but data! The
+     program first jumps to =message=, then it pushes a pointer to
+     "Hello, World!" on the stack and jumps to =goback=, which we then
+     can use to execute the shellcode.
+  b. =call= and =jmp= have relative variants (demo objdump). We see that
+     the operands in our example are *offsets* to the end of the
+     instruction. This makes it easy for us to write
+     position-independent code.
+* Breaking a Remote Service
+  We often want to break services via network. We can do this either
+  directly through the sockets API, through =netcat=, or by using pwn.
+
+  Demo pwn example.
+* Shellcode Constraints: Alphanumeric
+  Ideally, we don't want our shellcodes to contain special characters.
+
+  - For example =gets= stops on newline whitespace characters.
+  - The =strcpy= family of functions stop on string terminators.
+  - Other interpreters may have their own (more or less draconic)
+    restrictions.
+
+  In general, we're pretty safe with alphanumeric characters.
+
+  We obtain them by carefully crafting an alphanumeric shellcode and/or
+  using an encoder. Metasploit has an encoder, pwn also does.
+
+  Demo msfvenom at the end if time left.
+* Shellcode Constraints: Using an Environment Variable
+  Very often, our shellcode won't fit into the input buffer and/or the
+  program doesn't read enough data.
+
+  However, in some cases we may have control over what gets stored in
+  environment variables.
+
+  Where are environment variables placed? On the *stack*. This means
+  that we need a way to find their address. However, we can approximate
+  it by using a *NOP sled*. Let's look at the shellcode in the demo: it
+  contains a big number of NOPs at the beginning, so even if we don't
+  hit the shellcode exactly, we can still have a good chance of getting
+  there.
+
+  Demo time.
+* Shellcode Constraints: Two-Stage Shellcodes
+  Another way to bypass the space constraints is through *two-stage*
+  shellcodes.
+
+  Two-stage shellcodes use a small payload to bootstrap the actual
+  shellcode. A typical example would be:
+
+  a. Stage one: read the shellcode to a large (unused) area; jump to
+     that area
+  b. Stage two: the actual shellcode
+
+  This will be studied in detail in the lab.
+* Shellcode Constraints: Call main again
+  If =main= (or another function) does a read that leads to an overflow,
+  we can use this to call the =read= function multiple times. This can
+  help us to easily break our exploit into multiple stages.
+* Shellcode Constraints: Using the Heap
+  From here on be dragons!
+
+  a. Not all programs expose the patterns we've tried to exploit so
+     far. Some buffers may be allocated as global variables or on the
+     heap; some programs might not have (usable) buffers, but may be
+     exploitable through pointer corruption. Some programs might be
+     exploitable through e.g. uninitialized data. Etc.
+  b. Attacks haven't gone unnoticed, so there are many mitigation
+     methods for our exploits. We'll study most of them in future
+     sessions, but we'll use them as motivation here.
+
+  Sometimes the buffer isn't on the stack, so what do? We can place the
+  shellcode on the heap. This is hard, because we need an *information
+  leak* of the address where we placed the shellcode.
+
+  NB: Heap exploits can be used to corrupt for example heap metadata,
+  which may lead to interesting attacks.
+* Shellcode Constraints: String Formatting
+  Ways to cause info leaks are to make programs print addresses, by
+  calling printing functions, e.g. =puts=, =printf=.
+
+  An interesting exploit are format string attacks. Consider the
+  following snippet:
+
+  #+BEGIN_SRC
+  printf(buffer);
+  #+END_SRC
+
+  If we can control the value of =buffer=, then we can leak data by
+  inserting format strings: e.g. =%x=, =%d= will leak data on the
+  stack. Moreover, =%n= can be used to overwrite arbitrary data!
+* Shellcode Constraints: Return-to-libc
+  Injecting code is more difficult nowadays, due to NX. The stack (or
+  any other non-code memory region) can in principle be set executable
+  using =mprotect= (under unixes). But to do that, we need to call a
+  library function.
+
+  Shared libraries make this harder, because we need to determine the
+  function address within the (position-independent) library.
+
+  ASLR makes this even harder, because it randomizes shared library code
+  locations.
+
+  However, information leaks can still be used to bypass this!
+* Shellcode Constraints: Return-Oriented Programming
+  Shacham et al., 2008: return-to-libc can be generalized to arbitrary
+  computation.
+
+  The idea: =ret= jumps to a context-dependent location, which we can
+  control through stack buffer overflows.
+
+  The insight: find small instructions ending in =ret= that do what we
+  want them to.
+
+  The small instruction snippets are called *gadgets*.
+
+  It's been shown that for most programs, the set of gadgets is
+  turing-complete.
+* Conclusion
+  We'll study strings and ROP in more detail in the next sessions. Note
+  that this stops ten years ago. There are many other attacks and
+  defenses developed since then to now.
