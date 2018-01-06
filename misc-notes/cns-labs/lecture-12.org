@@ -1,0 +1,233 @@
+#+TITLE: Computer and Network Security -- Lecture 12
+#+SUBTITLE: Integers
+
+* High-level on integers
+  There are a few fundamental problems with integers. Can you guess
+  them?
+
+  - Size :: hardware has limited memory, so what are the bounds that
+            define a number?
+  - High-level representation :: what integer data types are there in C?
+       what are their bounds? what happens when converting from one type
+       to another?
+  - Low-level representation :: what is the machine representation of
+       numbers? what conversions are made between high-level and
+       machine?
+  - Operations and their semantics :: what issues can there arise from
+       operating with integers? e.g. division by zero, off-by-one errors
+
+  We'll discuss and dissect each of these in this lecture. Let's begin
+  with a primer.
+* What are integers?
+  Whole (non-fractional) numbers that can be positive, negative or
+  zero. Note that fractional numbers are subject to the same
+  discussion. Floating point representation is a real mess!
+* Integer uses (of interest to us as crackers)
+  - array indexing (and pointer arithmetic)
+  - loop counter, array bound
+  - object size, allocation size
+  - others?...
+* C data types
+  C gives us the following data types: =char=, =short=, =int=, =long=,
+  =long long= and pointer types. What is their meaning? What is the
+  difference between them?
+
+  All these are *integer* types defined by the C standard. In
+  particular, 
+
+  - =char= is the smallest integer type defined in the standard, at
+    least 8 bits
+  - =short= and =int= are at least 16 bits in size; =int= is greater or
+    equal to =short=
+  - =long= is at least 32 bits in size
+  - =long long= is at least 64 bits in size.
+
+  All numbers can be explicitly specified as =signed= or
+  =unsigned=. What is the default specifier for each type? Intuitively,
+  all integers are by default signed, *but* the signedness of =char= is
+  *unspecified* by the standard. Thus if we perform integer operations
+  on =char=, we *must* explicitly specify =signed= or =unsigned= to
+  ensure we're portable.
+
+  See gcc's =-fsigned-char= and =-funsigned-char= as an example.
+* Data models; size of C data types
+  The actual C type sizes differ by:
+
+  - hardware architecture: e.g. ARMv7, ARM64, x86, x86-64
+  - operating system
+
+  To sort-of standardize them, a set of data models have been devised by
+  the Open Group, by concatenating the (I)ntegers, (L)ong integers and
+  (P)ointers with the number of bits, e.g. 16, 32 or 64. For example,
+  the LP32 model specifies that =long= and pointers are 32 bits in size,
+  while ILP32 specifies that =int=, =long= and pointers are 32 bits in
+  size.
+
+  See slide 6 figure: in particular, LLP64 sets =long long= to 64 bit
+  and everything else to their minimum values.
+
+  Which data model does Linux use? LP64 (or I32LP64), yes.
+* To bear in mind
+  So to sum this up, we're interested in exploring:
+
+  - representation,
+  - bounds,
+  - signedness,
+  - conversion, and
+  - pointers and integers.
+* Representation
+  # [Slide 8]
+
+  Let's start with unsigned numbers. How do we represent them in binary?
+  Bits flow from "right" to left", where the rightmost bit is the least
+  significant one and the leftmost is the most significant.
+
+  Signed integers require a *sign bit*. Usually the leftmost (most
+  significant) bit is reserved for the sign, and, by convention, 0
+  stands for "positive" while 1 stands for "negative".
+
+  How do we represent the rest of the signed number? There is more than
+  one way.
+
+  # [Slide 9]
+
+  What we previously discussed.
+
+  # [Slide 10]
+
+  The first way is what I'll call the "direct" representation, i.e. the
+  first bit is the sign and the rest represents the value. so for
+  example, given an 8-bit number,
+
+  - 2 is 0000 0010
+  - -2 is 1000 0010
+
+  Intuitively, the problem with this approach is that addition and
+  subtraction need to be implemented differently for positive and
+  negative numbers.
+
+  # [Slide 11]
+
+  The second way is the so-called one's complement representation. In
+  one's complement, negation has the same meaning whether it's done
+  bitwise or arithmetic-wise. So the first bit is the sign bit, and
+  negative numbers are represented "in reverse", e.g.
+
+  - 2 is 0000 0010
+  - -2 is 1111 1101
+
+  This is much simpler to implement, but notice that 0 has two values,
+  +0 and -0.
+
+  # [Slide 12]
+
+  Finally, the third way (the one that's implemented in most CPUs
+  nowadays) is two's complement representation. In two's complement,
+  negation is achieved by flipping all the bits and adding 1 to the
+  result. So the first bit is the sign bit, and the negative numbers are
+  also in reverse, but starting with -1, e.g.
+
+  - 2 is 0000 0010
+  - -2 is 1111 1110
+
+  Notice how -1 is all 0xff, -2 is 0xfe, -3 is 0xfd, etc.
+* Signed/unsigned ranges
+  Thus, using two's complement, a number of bitness B
+
+  - unsigned :: has range 0 .. 2^B-1
+  - signed :: has range -2^(B-1) .. 2^(B-1) - 1
+
+  For example, any =signed char= goes from -128 to 127.
+
+  Let's do a demo to illustrate representation and ranges.
+* Conversion between integer types
+  # [Slide 14]
+
+  Integer types have two characteristics:
+
+  - signedness :: whether the type has a sign or not
+  - rank :: the number of values represented by the type
+
+  Higher-sized types have higher ranks. When a lower-ranked type is
+  converted to a higher-ranked type, we say that it is *promoted*.
+
+  # [Slide 15]
+
+  Integers smaller than =int= are implicitly promoted to =int= when
+  making computations.
+
+  In the example here, the addition =c1 + c2= is actually an =int=,
+  which is then truncated back to =char=.
+
+  # [Slide 16]
+
+  Note that the rank is correlated with signedness. For example
+  =unsigned char= has a the same rank as =signed char=, but when the two
+  are used together (e.g. in comparisons), the signed number will be
+  implicitly promoted to unsigned. This is not always okay, e.g.
+
+  #+BEGIN_SRC C
+    signed char c1 = -1;
+    unsigned char c2 = 1;
+    signed int i1 = -1;
+    unsigned int i2 = 1;
+    
+    printf("c1 < c2: %d\n", c1 < c2);
+    printf("i1 < i2: %d\n", i1 < i2);
+    printf("i1 < (int) i2: %d\n", c1 < (int) c2);
+  #+END_SRC
+
+  What will each =printf= call show? (Do the demo). Why?
+* All possible conversions between integer types
+  # [Slides 17-20]
+
+  - unsigned to unsigned :: smaller to higher rank is promoted with
+       zero-extend; otherwise truncation (and possible loss of data);
+  - unsigned to signed :: same rank, so data is preserved, but semantics
+       may change (the most significant bit becomes the sign bit);
+  - signed to signed :: same as unsigned to unsigned basically, only
+       sign extension is done instead of zero-extension;
+  - signed to unsigned :: data is preserved, but negative integers are
+       converted to large positive integers.
+
+  # [Slide 18]
+
+  We've aleady discussed =char= signedness.
+
+  # [Slide 19]
+
+  All the possible conversions fit in a table (although the table
+  doesn't present all of them).
+* Operations on integers
+  # [Slides 23-29]
+
+  What can we do with integers?
+
+  - addition/subtraction :: those are more or less the same thing in
+       two's complement, only in reverse; e.g. adding an index to an
+       array or pointer; can result in overflow.
+  - multiplication :: can easily overflow; consider that when
+                      multiplying by 4 (=sizeof(int)=), the number
+                      =MAXINT/4= can cause an overflow.
+  - division :: can cause division by zero exception; also =MININT/-1=.
+  - modulo :: same as division; also, consider remainder versus modulo
+              (the two operations are different!)
+  - shifting :: consider arithmetic versus logical shift.
+
+  For multiplication and division/remainder, remember the assembly lab
+  and how painful that was.
+* Demo: I/O netgarage (smashthestack) level 02
+* Issues
+  # [Slides 30-34]
+
+  Already discussed these:
+
+  - truncation :: loss of info
+  - overflow :: go beyond maximum, below minimum
+  - unintended signed/unsigned conversion ::
+  - negative indices :: address arbitrary values
+* Rules and recommendations
+  # [Slides 35-37]
+
+  Let's look at the C CERT coding standards themselves.
+* Demo: I/O netgarage (smashthestack) level07
