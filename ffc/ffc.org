@@ -1,0 +1,25 @@
+#+TITLE: Foundations of Functional Computing
+#+SUBTITLE: Notes on what will be a talk (for Bucharest FP, and maybe others)
+
+* Outline
+** About myself
+** The programming problem
+   Starting from Dijkstra's quote: "When we had no computers, we had no
+   programming problem either. When we had a few computers, we had a
+   mild programming problem. Confronted with machines a million times as
+   powerful, we are faced with a gigantic programming problem."
+
+   Main idea here is that software and hardware are /too/ complex, and I
+   want to argue that much of the same can be achieved using much
+   simpler systems (and yes, a lot of trade-offs are involved, but I'm
+   gonna be an asshole and ignore them).
+
+   This, incidentally, goes back to the way the first functional
+   machines were conceived. Cite Stan's "bedrock abstraction" post here.
+** A bit of history
+** The basics: Maxwell's equations of software
+   http://www.michaelnielsen.org/ddi/lisp-as-the-maxwells-equations-of-software/
+** The basics: type and memory safety
+** The not-so-basics: macros and compilation
+** Problem: temporal memory safety
+** Open-ended: discussion, questions?
